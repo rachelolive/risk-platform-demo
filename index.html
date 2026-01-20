@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risk Dashboard - Realistic Map</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Tailwind CSS via CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- FontAwesome CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+  /* --- REQUESTED STYLING START --- */
+  :root {
+    /* Colors used in the tour/badge */
+    --tour-purple: #8B5CF6;
+    --tour-pink: #DB2777;
+    --tour-red: #DC2626;
+    --tour-text: #111827;
+    --tour-text-muted: #6B7280;
+    --tour-border: #E5E7EB;
+    --tour-bg: #FFFFFF;
+  }
+
+  /* --- 1. DEMO BADGE STYLING --- */
+  .demo-badge {
+    position: fixed;
+    top: 16px;
+    right: 24px;
+    background: var(--tour-bg);
+    border: 1px solid #FEE2E2;
+    color: var(--tour-red);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    z-index: 4000; /* High z-index to stay on top */
+    animation: pulse-border 2s infinite;
+    cursor: default;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  @keyframes pulse-border {
+    0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  }
+
+  /* --- 2. TOUR OVERLAY --- */
+  .tour-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 3000;
+    display: none; /* Hidden by default */
+  }
+
+  /* Highlight Effect for Tour Steps */
+  .tour-focus {
+    position: relative !important;
+    z-index: 3001 !important;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.5) !important;
+    border-radius: 4px; /* Optional: smooths corners of highlighted items */
+    background-color: white; /* Ensures text remains readable */
+    transition: box-shadow 0.3s ease;
+  }
+
+  /* --- 3. TOUR CARD STYLING --- */
+  .tour-card {
+    background: var(--tour-bg);
+    width: 480px;
+    padding: 32px;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    position: fixed;
+    z-index: 3002;
+    /* Always centered */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: left;
+    transition: all 0.3s ease;
+    display: none; /* Hidden by default */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* Internal Card Elements */
+  .tour-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    cursor: pointer;
+    color: #9CA3AF;
+    font-size: 20px;
+    line-height: 1;
+  }
+  .tour-close:hover { color: var(--tour-text); }
+
+  .tour-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--tour-text);
+    margin: 0 0 16px 0;
+  }
+
+  .tour-desc {
+    font-size: 16px;
+    color: var(--tour-text-muted);
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  /* Footer & Controls */
+  .tour-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Progress Dots */
+  .tour-progress {
+    display: flex;
+    gap: 8px;
+  }
+
+  .t-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tour-border);
+    transition: all 0.3s;
+  }
+
+  .t-dot.active {
+    width: 32px;
+    border-radius: 4px;
+    background: var(--tour-purple);
+  }
+
+  /* Buttons */
+  .tour-btn-group {
+    display: flex;
+    gap: 12px;
+  }
+
+  .btn-tour-back {
+    background: white;
+    color: #374151;
+    border: 1px solid #D1D5DB;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-tour-back:hover { background: #F3F4F6; }
+
+  .btn-tour-next {
+    background: linear-gradient(90deg, #8B5CF6, #DB2777);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.2s;
+  }
+  .btn-tour-next:hover { opacity: 0.9; }
+  /* --- REQUESTED STYLING END --- */
+
+  /* --- GLOBAL OVERRIDES & LAYOUT --- */
+  body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; }
+
+  .dash-wrapper {
+    display: flex;
+    flex-direction: column; 
+    background: #f8f9fa; 
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    position: relative; 
+    overflow: hidden; 
+    width: 100%;            
+    height: 100vh;
+    min-height: 800px;
+    color: #374151;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+  }
+
+  /* --- TOP NAVIGATION --- */
+  .dash-nav-header {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 15px 24px 0 24px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+   
+  .header-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .dash-title { 
+    font-size: 18px; 
+    font-weight: 700; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    margin: 0;
+  }
+
+  .dash-tabs { display: flex; gap: 20px; }
+  .dash-tab {
+    padding: 10px 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .dash-tab:hover { color: #111; }
+  .dash-tab.active { color: #2563eb; border-bottom: 2px solid #2563eb; font-weight: 600; }
+
+  /* --- CONTENT CONTAINER --- */
+  .dash-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden; 
+  }
+
+  /* --- MAIN VIEW AREA --- */
+  .dash-content-area {
+    flex: 1;
+    background: #f3f4f6;
+    padding: 24px;
+    overflow-y: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .view-section { display: none; width: 100%; height: 100%; }
+  /* Default active state is column flex */
+  .view-section.active { display: flex; flex-direction: column; }
+
+  /* --- COMMON & OVERVIEW STYLES --- */
+  .overview-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 350px 350px; gap: 20px; }
+  .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-weight: 600; font-size: 14px; }
+  .card-toggle { display: flex; background: #f3f4f6; border-radius: 4px; padding: 2px; font-size: 10px; font-weight: 600; }
+  .t-opt { padding: 3px 8px; border-radius: 3px; cursor: pointer; color: #6b7280; transition: all 0.2s; }
+  .t-opt.active { background: #fff; color: #111; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+   
+  .view-avg, .view-max { display: none; flex: 1; flex-direction: column; }
+  .card[data-mode="avg"] .view-avg { display: flex; }
+  .card[data-mode="max"] .view-max { display: flex; }
+
+  .gauge-wrapper { position: relative; width: 200px; height: 100px; margin: 20px auto; overflow: hidden; }
+  .gauge-arc { width: 200px; height: 200px; border-radius: 50%; border: 25px solid #f3f4f6; border-top-color: #4ade80; border-right-color: #fbbf24; border-bottom-color: transparent; border-left-color: #f87171; transform: rotate(-45deg); box-sizing: border-box; }
+  .gauge-value { position: absolute; bottom: 0; left: 0; width: 100%; text-align: center; font-size: 42px; font-weight: 700; line-height: 1; }
+  .gauge-label { text-align: center; font-size: 12px; color: #999; margin-top: 5px; }
+
+  .bar-row { display: flex; align-items: center; margin-bottom: 8px; font-size: 12px; }
+  .bar-label { width: 120px; flex-shrink: 0; }
+  .bar-track { flex: 1; background: #f3f4f6; height: 8px; border-radius: 4px; overflow: hidden; margin: 0 10px; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .bar-val { width: 30px; text-align: right; font-weight: 600; }
+
+  .v-chart { display: flex; align-items: flex-end; justify-content: space-around; height: 100%; padding-top: 20px; }
+  .v-bar-group { display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
+  .v-bar { width: 30px; background: #65a30d; border-radius: 4px 4px 0 0; position: relative; transition: height 0.5s; }
+  .v-label { font-size: 11px; color: #666; }
+
+  /* --- MATRIX / TRENDS / MAP SIDEBAR STYLES --- */
+  #view-matrix.active, #view-trends.active, #view-map.active, #view-heatmap.active {
+    display: flex;
+    flex-direction: row;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+  }
+
+  .matrix-sidebar {
+    width: 260px; 
+    background: #fff;
+    border-right: 1px solid #e5e7eb;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px; 
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar-group { display: flex; flex-direction: column; gap: 12px; }
+  .sidebar-header-sm {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #9ca3af;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .matrix-radio-group, .matrix-check-group { display: flex; flex-direction: column; gap: 10px; }
+  .matrix-radio-group label, .matrix-check-group label { 
+    cursor: pointer; display: flex; align-items: center; gap: 6px; 
+    user-select: none; font-size: 13px; color: #374151; font-weight: 500;
+  }
+  .matrix-radio-group input[type="radio"], .matrix-check-group input[type="checkbox"] {
+    accent-color: #2563eb; width: 16px; height: 16px; flex-shrink: 0;
+  }
+   
+  .icon-chevron { width: 12px; height: 12px; opacity: 0.5; margin-left: auto; }
+   
+  .dash-legend-vertical { display: flex; flex-direction: column; gap: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4b5563; }
+  .color-box { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  .matrix-content-wrapper {
+    flex: 1; padding: 20px; display: flex; flex-direction: column; background: #fff; overflow-y: auto;
+  }
+
+  /* Matrix Grid */
+  .risk-matrix { display: grid; grid-template-columns: 30px 1fr; grid-template-rows: 1fr 30px; height: 100%; gap: 10px; }
+  .y-axis-label { writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; font-weight: 700; font-size: 12px; display: flex; justify-content: space-between; color: #6b7280; }
+  .x-axis-label { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 12px; padding-left: 40px; color: #6b7280; }
+  .grid-board { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(4, 1fr); border: 1px solid #e5e7eb; border-radius: 4px; background: #fff; }
+  .cell { border: 1px solid rgba(0,0,0,0.05); padding: 4px; overflow: hidden; position: relative; }
+   
+  .c-0-0 { background: #fffbe6; } .c-0-1 { background: #fff1d6; } .c-0-2 { background: #ffdecb; } .c-0-3 { background: #ffcbb6; } .c-0-4 { background: #ffa8a8; }
+  .c-1-0 { background: #f4fce3; } .c-1-1 { background: #fffbe6; } .c-1-2 { background: #fff1d6; } .c-1-3 { background: #ffdecb; } .c-1-4 { background: #ffcbb6; }
+  .c-2-0 { background: #d9f99d; } .c-2-1 { background: #f4fce3; } .c-2-2 { background: #fffbe6; } .c-2-3 { background: #fff1d6; } .c-2-4 { background: #ffdecb; }
+  .c-3-0 { background: #bef264; } .c-3-1 { background: #d9f99d; } .c-3-2 { background: #e9f5d3; } .c-3-3 { background: #fef9c3; } .c-3-4 { background: #fffbe6; }
+
+  .chip { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; color: #1f2937; margin-bottom: 4px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; }
+  .chip:hover { transform: scale(1.02); }
+  .bg-cohort { background-color: #1f2937; color: white; }
+  .bg-bmw { background-color: #e9d5ff; }
+  .bg-borg { background-color: #fdba74; }
+  .bg-gm { background-color: #99f6e4; }
+  .bg-honda { background-color: #fcd34d; }
+
+  /* Heatmap Colors */
+  .hm-1 { background: #4ade80; color: #064e3b; }
+  .hm-2 { background: #a3e635; color: #1a2e05; }
+  .hm-3 { background: #facc15; color: #422006; }
+  .hm-4 { background: #fb923c; color: #431407; }
+  .hm-5 { background: #f87171; color: #450a0a; }
+
+  /* Trends Components */
+  .trends-chart-wrapper { height: 320px; width: 100%; margin-bottom: 24px; position: relative; }
+  .trend-table { width: 100%; border-collapse: collapse; font-size: 13px; color: #374151; }
+  .trend-table th { text-align: left; padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #6b7280; font-size: 12px; }
+  .trend-table td { padding: 12px; border-bottom: 1px solid #f3f4f6; }
+  .search-box { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; margin-bottom: 8px; }
+
+  /* --- WORLD MAP SIDEBAR STYLES --- */
+  .sidebar-container {
+    width: 280px;
+    background: #fff;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+   
+  .sidebar-section { padding: 20px; border-bottom: 1px solid #f3f4f6; }
+  .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .sidebar-title { font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; }
+  .toggle-pills { display: flex; background: #f3f4f6; border-radius: 4px; padding: 2px; }
+  .pill-btn { font-size: 10px; padding: 2px 8px; border-radius: 3px; cursor: pointer; color: #6b7280; font-weight: 600; transition: all 0.2s; }
+  .pill-btn:hover { color: #111; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+  .checkbox-list { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
+  .check-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4b5563; cursor: pointer; }
+  .check-item input[type="checkbox"] { accent-color: #2563eb; width: 14px; height: 14px; border-radius: 3px; cursor: pointer; }
+
+  /* --- MAP STYLES --- */
+  .map-container { flex: 1; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; position: relative; overflow: hidden; margin-bottom: 24px; display: flex; flex-direction: column; }
+  .map-header-row { display: flex; justify-content: space-between; padding: 16px 20px; z-index: 10; }
+  .map-controls-center {
+      position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 20px; font-size: 11px; font-weight: 700; color: #6b7280;
+      background: rgba(255,255,255,0.9); padding: 6px 16px; border-radius: 20px;
+      border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 20;
+  }
+  .map-ctrl-btn { cursor: pointer; transition: color 0.2s; letter-spacing: 0.5px; }
+  .map-ctrl-btn:hover { color: #111; }
+  .world-svg-map {
+      width: 100%; height: 100%;
+      background-image: linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px);
+      background-size: 40px 40px; background-position: center center;
+  }
+  .land-shape { stroke: #fff; stroke-width: 1; transition: fill 0.2s; }
+  .land-default { fill: #f3f4f6; }
+  .land-default:hover { fill: #e5e7eb; }
+  .land-usa { fill: #ef4444; } .land-usa:hover { fill: #dc2626; }
+  .land-china { fill: #fdba74; } .land-china:hover { fill: #fb923c; }
+
+  /* --- TABLE STYLES --- */
+  .data-table-clean { width: 100%; border-collapse: collapse; font-size: 13px; color: #374151; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; }
+  .data-table-clean th { text-align: left; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #6b7280; font-size: 12px; background: #f9fafb; }
+  .data-table-clean td { padding: 12px 16px; border-bottom: 1px solid #f3f4f6; }
+  .data-table-clean tr:last-child td { border-bottom: none; }
+  .data-table-clean tr:hover { background: #f9fafb; }
+  .link-blue { color: #2563eb; text-decoration: none; font-weight: 500; }
+  .link-blue:hover { text-decoration: underline; }
+
+  /* --- PANEL & OVERLAY --- */
+  .dash-panel { position: absolute; top: 0; right: 0; width: 350px; height: 100%; background: #fff; border-left: 1px solid #e5e7eb; box-shadow: -4px 0 15px rgba(0,0,0,0.1); transform: translateX(100%); transition: transform 0.3s ease-in-out; display: flex; flex-direction: column; z-index: 50; overflow-y: auto; }
+  .dash-panel.open { transform: translateX(0); } 
+  .panel-header { padding: 20px; border-bottom: 1px solid #eee; position: relative; }
+  .panel-close { position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 18px; color: #999; }
+  .panel-title { font-size: 18px; font-weight: 700; margin: 0 0 5px 0; }
+  .panel-meta { font-size: 12px; color: #666; font-weight: 500; }
+  .panel-content { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+  .overlay-mask { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.3); z-index: 40; display: none; }
+  .overlay-mask.active { display: block; }
+
+  /* Demo Popup */
+  .demo-popup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1100; display: none; }
+  .demo-popup-card {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 450px; background: #fff; padding: 30px; border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3); text-align: center;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- UPDATED BADGE: Outside the main wrapper due to fixed positioning -->
+<div class="demo-badge">
+    <i class="fa-solid fa-circle-play text-[#DC2626]"></i>
+    <span>Interactive Demo</span>
+</div>
+
+<div class="dash-wrapper">
+  
+  <!-- Header -->
+  <div class="dash-nav-header">
+    <div class="header-top-row">
+      <div class="dash-title">
+        Automotive Sector 
+      </div>
+    </div>
+    
+    <div class="dash-tabs" id="mainTabs">
+      <div class="dash-tab active" onclick="switchView('overview', this)" data-view="overview">Overview</div>
+      <div class="dash-tab" onclick="switchView('matrix', this)" data-view="matrix">Risk Matrix</div>
+      <div class="dash-tab" onclick="switchView('heatmap', this)" data-view="heatmap">Heatmap</div>
+      <div class="dash-tab" onclick="switchView('trends', this)" data-view="trends">Trends</div>
+      <div class="dash-tab" onclick="switchView('map', this)" data-view="map">World Map</div>
+      <div class="dash-tab" onclick="switchView('horizon', this)" data-view="horizon">Horizon Explorer</div>
+    </div>
+  </div>
+
+  <div class="dash-body">
+    
+    <!-- 1. OVERVIEW VIEW -->
+    <div id="view-overview" class="view-section active">
+      <!-- No sidebar for overview as requested -->
+      <div class="dash-content-area">
+         <div class="overview-grid">
+           <!-- Card 1: Gauge -->
+           <div class="card" id="card1" data-mode="avg">
+             <div class="card-header">
+               <span>Risk Score</span>
+               <div class="card-toggle">
+                 <div class="t-opt active" onclick="setGlobalMode('avg')">AVG</div>
+                 <div class="t-opt" onclick="setGlobalMode('max')">MAX</div>
+               </div>
+             </div>
+             <div class="view-avg">
+               <div class="gauge-wrapper">
+                 <div class="gauge-arc"></div>
+                 <div class="gauge-value">3</div>
+                 <div class="gauge-label">↓ 0 QoQ</div>
+               </div>
+               <div style="text-align:center; margin-top:10px; font-size:12px;">Cohort Average: 3</div>
+             </div>
+             <div class="view-max">
+               <div class="gauge-wrapper">
+                 <div class="gauge-arc" style="border-top-color:#f87171; border-right-color:#f87171; border-left-color:#f87171;"></div>
+                 <div class="gauge-value" style="color:#dc2626;">5</div>
+                 <div class="gauge-label" style="color:#dc2626;">CRITICAL</div>
+               </div>
+               <div style="text-align:center; margin-top:10px; font-size:12px;">Max Outlier: GM (5)</div>
+             </div>
+           </div>
+           <!-- Card 2: Company List -->
+           <div class="card" id="card2" data-mode="avg">
+             <div class="card-header">
+               <span>Risk Score - By Company</span>
+               <div class="card-toggle">
+                 <div class="t-opt active" onclick="setGlobalMode('avg')">AVG</div>
+                 <div class="t-opt" onclick="setGlobalMode('max')">MAX</div>
+               </div>
+             </div>
+             <div class="view-avg" style="overflow-y:auto; flex:1;">
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-5" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">5</span><span style="font-size:13px;">General Motors</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-4" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">4</span><span style="font-size:13px;">BMW</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-4" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">4</span><span style="font-size:13px;">Hyundai Motor Company</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-3" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">3</span><span style="font-size:13px;">Honda</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-3" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">3</span><span style="font-size:13px;">Mercedes-Benz</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-3" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">3</span><span style="font-size:13px;">Stellantis</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-3" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">3</span><span style="font-size:13px;">Toyota</span>
+                </div>
+                 <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-3" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">3</span><span style="font-size:13px; font-weight:700;">Cohort average</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">BorgWarner</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">Subaru</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">Volvo</span>
+                </div>
+             </div>
+             <div class="view-max" style="overflow-y:auto; flex:1;">
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-5" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">20</span><span style="font-size:13px;">General Motors</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-4" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">15</span><span style="font-size:13px;">BMW</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-4" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">15</span><span style="font-size:13px;">Hyundai Motor Company</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-4" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">15</span><span style="font-size:13px;">Honda</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-4" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">15</span><span style="font-size:13px;">Mercedes-Benz</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-4" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">15</span><span style="font-size:13px;">Stellantis</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-4" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">15</span><span style="font-size:13px;">Toyota</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-3" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">8</span><span style="font-size:13px; font-weight:700;">Cohort maximum</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">BorgWarner</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">Subaru</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                  <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">Volvo</span>
+                </div>
+             </div>
+           </div>
+           <!-- Card 3: Pillars -->
+           <div class="card" id="card3" data-mode="avg">
+             <div class="card-header">
+               <span>Risk Score - By Pillar</span>
+               <div class="card-toggle">
+                 <div class="t-opt active" onclick="setGlobalMode('avg')">AVG</div>
+                 <div class="t-opt" onclick="setGlobalMode('max')">MAX</div>
+               </div>
+             </div>
+             <div class="view-avg" style="overflow-y:auto; flex:1; padding-right:10px;">
+                <div class="bar-row"><div class="bar-label">Product Incidents</div><div class="bar-track"><div class="bar-fill hm-4" style="width: 75%"></div></div><div class="bar-val">15</div></div>
+                <div class="bar-row"><div class="bar-label">Financial Distress</div><div class="bar-track"><div class="bar-fill hm-3" style="width: 60%"></div></div><div class="bar-val">12</div></div>
+                <div class="bar-row"><div class="bar-label">International Trade</div><div class="bar-track"><div class="bar-fill hm-3" style="width: 50%"></div></div><div class="bar-val">10</div></div>
+                <div class="bar-row"><div class="bar-label">Operational Accidents</div><div class="bar-track"><div class="bar-fill hm-3" style="width: 30%"></div></div><div class="bar-val">6</div></div>
+                <div class="bar-row"><div class="bar-label">Legal</div><div class="bar-track"><div class="bar-fill hm-2" style="width: 15%"></div></div><div class="bar-val">3</div></div>
+                <div class="bar-row"><div class="bar-label">Tax</div><div class="bar-track"><div class="bar-fill hm-2" style="width: 10%"></div></div><div class="bar-val">2</div></div>
+                <div class="bar-row"><div class="bar-label">Activism</div><div class="bar-track"><div class="bar-fill hm-1" style="width: 5%"></div></div><div class="bar-val">1</div></div>
+                <div class="bar-row"><div class="bar-label">Environmental</div><div class="bar-track"><div class="bar-fill hm-1" style="width: 5%"></div></div><div class="bar-val">1</div></div>
+                <div class="bar-row"><div class="bar-label">Geopolitical</div><div class="bar-track"><div class="bar-fill hm-1" style="width: 5%"></div></div><div class="bar-val">1</div></div>
+                <div class="bar-row"><div class="bar-label">Governance</div><div class="bar-track"><div class="bar-fill hm-1" style="width: 5%"></div></div><div class="bar-val">1</div></div>
+                <div class="bar-row"><div class="bar-label">Natural Disaster</div><div class="bar-track"><div class="bar-fill hm-1" style="width: 5%"></div></div><div class="bar-val">1</div></div>
+                <div class="bar-row"><div class="bar-label">People & HR</div><div class="bar-track"><div class="bar-fill hm-1" style="width: 5%"></div></div><div class="bar-val">1</div></div>
+                <div class="bar-row"><div class="bar-label">Regulatory</div><div class="bar-track"><div class="bar-fill hm-1" style="width: 5%"></div></div><div class="bar-val">1</div></div>
+                <div class="bar-row"><div class="bar-label">Supply Chain</div><div class="bar-track"><div class="bar-fill hm-1" style="width: 5%"></div></div><div class="bar-val">1</div></div>
+                <div class="bar-row"><div class="bar-label">Tech & Cyber</div><div class="bar-track"><div class="bar-fill hm-1" style="width: 5%"></div></div><div class="bar-val">1</div></div>
+             </div>
+             <div class="view-max" style="overflow-y:auto; flex:1; padding-right:10px;">
+                <div class="bar-row"><div class="bar-label">Product Incidents</div><div class="bar-track"><div class="bar-fill hm-5" style="width: 100%"></div></div><div class="bar-val">32</div></div>
+                <div class="bar-row"><div class="bar-label">Intl. Trade</div><div class="bar-track"><div class="bar-fill hm-4" style="width: 80%"></div></div><div class="bar-val">24</div></div>
+                <div class="bar-row"><div class="bar-label">Cybersecurity</div><div class="bar-track"><div class="bar-fill hm-3" style="width: 50%"></div></div><div class="bar-val">12</div></div>
+             </div>
+           </div>
+           <!-- Card 4: Trend -->
+           <div class="card" id="card4" data-mode="avg">
+             <div class="card-header">
+               <span>Risk Score - By Month</span>
+               <div class="card-toggle">
+                 <div class="t-opt active" onclick="setGlobalMode('avg')">AVG</div>
+                 <div class="t-opt" onclick="setGlobalMode('max')">MAX</div>
+               </div>
+             </div>
+             <div class="view-avg">
+               <div class="v-chart">
+                 <div class="v-bar-group"><div class="v-bar" style="height:30%"></div><span class="v-label">Jul</span></div>
+                 <div class="v-bar-group"><div class="v-bar" style="height:25%"></div><span class="v-label">Aug</span></div>
+                 <div class="v-bar-group"><div class="v-bar" style="height:55%"></div><span class="v-label">Sep</span></div>
+               </div>
+             </div>
+             <div class="view-max">
+               <div class="v-chart">
+                 <div class="v-bar-group"><div class="v-bar" style="height:60%; background:#ef4444;"></div><span class="v-label">Jul</span></div>
+                 <div class="v-bar-group"><div class="v-bar" style="height:45%; background:#ef4444;"></div><span class="v-label">Aug</span></div>
+                 <div class="v-bar-group"><div class="v-bar" style="height:90%; background:#ef4444;"></div><span class="v-label">Sep</span></div>
+               </div>
+             </div>
+           </div>
+         </div>
+      </div>
+    </div>
+
+    <!-- 2. MATRIX VIEW -->
+    <div id="view-matrix" class="view-section">
+      <div class="matrix-sidebar">
+        <div class="sidebar-group">
+          <div class="sidebar-header-sm">View Options</div>
+          <div class="matrix-radio-group">
+            <label><input type="radio" name="matrixView" value="risk" checked onclick="updateMatrix()"> Risk Pillars</label>
+            <label><input type="radio" name="matrixView" value="event" onclick="updateMatrix()"> Event Types</label>
+            <label><input type="radio" name="matrixView" value="company" onclick="updateMatrix()"> Companies</label>
+          </div>
+        </div>
+        <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
+        <div class="sidebar-group">
+          <div class="sidebar-header-sm flex justify-between items-center">
+            <span class="font-bold">Risk Pillars</span>
+            <div class="toggle-pills">
+                <!-- Using generic ID for toggle to work with new dynamic list -->
+                <div class="pill-btn" onclick="toggleSidebarAll('matrixPillarFilters', true)">All</div>
+                <div class="pill-btn" onclick="toggleSidebarAll('matrixPillarFilters', false)">None</div>
+            </div>
+          </div>
+          <!-- Replaced hardcoded list with container for dynamic generation -->
+          <div class="matrix-check-group" id="matrixPillarFilters"></div>
+        </div>
+        <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
+        <div class="sidebar-group">
+          <div class="sidebar-header-sm">Legend</div>
+          <div class="dash-legend-vertical">
+             <div class="legend-item"><div class="color-box bg-cohort"></div> Cohort</div>
+             <div class="legend-item"><div class="color-box bg-bmw"></div> BMW</div>
+             <div class="legend-item"><div class="color-box bg-gm"></div> GM</div>
+             <div class="legend-item"><div class="color-box bg-honda"></div> Honda</div>
+             <div class="legend-item"><div class="color-box bg-borg"></div> BorgWarner</div>
+          </div>
+        </div>
+      </div>
+      <div class="matrix-content-wrapper">
+        <div class="risk-matrix">
+          <div class="y-axis-label"><span>Higher</span><span>Media Impact</span><span>Lower</span></div>
+          <div class="grid-board" id="matrixGrid"></div>
+          <div></div>
+          <div class="x-axis-label"><span>Lower</span><span>Frequency</span><span>Higher</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. HEATMAP VIEW (UPDATED) -->
+    <div id="view-heatmap" class="view-section">
+      <!-- Added Sidebar for Heatmap -->
+      <div class="matrix-sidebar">
+        
+        <!-- 1. METRIC -->
+        <div class="sidebar-group">
+          <div class="sidebar-header-sm">Metric</div>
+          <div class="matrix-radio-group">
+            <label><input type="radio" name="heatmapMetric" value="score" checked onchange="updateHeatmapState()"> Risk score</label>
+            <label><input type="radio" name="heatmapMetric" value="count" onchange="updateHeatmapState()"> Events count</label>
+            <label><input type="radio" name="heatmapMetric" value="frequency" onchange="updateHeatmapState()"> Frequency</label>
+            <label><input type="radio" name="heatmapMetric" value="media" onchange="updateHeatmapState()"> Media impact</label>
+          </div>
+        </div>
+        
+        <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
+        
+        <!-- 2. VIEW -->
+        <div class="sidebar-group">
+          <div class="sidebar-header-sm">View</div>
+          <div class="matrix-radio-group">
+            <label><input type="radio" name="heatmapViewType" value="value" checked onchange="updateHeatmapState()"> Value</label>
+            <label><input type="radio" name="heatmapViewType" value="pct_period" onchange="updateHeatmapState()"> % change from previous period</label>
+            <label><input type="radio" name="heatmapViewType" value="pct_cohort" onchange="updateHeatmapState()"> % change from cohort</label>
+          </div>
+        </div>
+        
+        <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
+        
+        <!-- 3. ORGANIZATIONS -->
+        <div class="sidebar-group">
+          <div class="sidebar-header-sm">Organizations</div>
+          <div class="matrix-check-group" id="heatmapOrgFilters">
+             <label><input type="checkbox" value="Cohort Benchmark" checked onchange="updateHeatmapState()"> Cohort Benchmark</label>
+             <label><input type="checkbox" value="BMW" checked onchange="updateHeatmapState()"> BMW</label>
+             <label><input type="checkbox" value="BorgWarner" checked onchange="updateHeatmapState()"> BorgWarner</label>
+             <label><input type="checkbox" value="General Motors" checked onchange="updateHeatmapState()"> General Motors</label>
+             <label><input type="checkbox" value="Honda" checked onchange="updateHeatmapState()"> Honda</label>
+             <label><input type="checkbox" value="Hyundai Motor Co." checked onchange="updateHeatmapState()"> Hyundai Motor Co.</label>
+             <label><input type="checkbox" value="Mercedes-Benz" checked onchange="updateHeatmapState()"> Mercedes-Benz</label>
+             <label><input type="checkbox" value="Stellantis" checked onchange="updateHeatmapState()"> Stellantis</label>
+             <label><input type="checkbox" value="Toyota" checked onchange="updateHeatmapState()"> Toyota</label>
+             <label><input type="checkbox" value="Subaru" checked onchange="updateHeatmapState()"> Subaru</label>
+             <label><input type="checkbox" value="Volvo" checked onchange="updateHeatmapState()"> Volvo</label>
+          </div>
+        </div>
+
+      </div>
+
+        <div class="w-full h-full p-6" style="flex:1;">
+            <div class="bg-white shadow-sm rounded-lg w-full h-full flex flex-col border border-gray-200 overflow-hidden">
+                <!-- Content Header -->
+                <div class="p-6 border-b border-gray-100 shrink-0">
+                    <h2 class="text-xl font-bold text-gray-800">Risk Heatmap</h2>
+                    <p class="text-sm text-gray-400">Detailed breakdown of risk scores across pillars and organisations.</p>
+                </div>
+                
+                <!-- Table Container -->
+                <div class="flex-1 overflow-auto" id="heatmapContainer">
+                    <!-- Dynamic Table will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. TRENDS VIEW -->
+    <div id="view-trends" class="view-section">
+       <div class="matrix-sidebar">
+         <div class="sidebar-group">
+           <div class="sidebar-header-sm">Metric</div>
+           <div class="matrix-radio-group">
+             <label><input type="radio" name="trendsMetric" checked> Risk score</label>
+             <label><input type="radio" name="trendsMetric"> Events count</label>
+           </div>
+         </div>
+         <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
+         <div class="sidebar-group">
+           <div class="sidebar-header-sm">Compare</div>
+           <div class="matrix-radio-group">
+             <label><input type="radio" name="trendsCompare" checked> Risk pillars</label>
+             <label><input type="radio" name="trendsCompare"> Event types</label>
+             <label><input type="radio" name="trendsCompare"> Organisations</label>
+           </div>
+         </div>
+         <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
+         <div class="sidebar-group">
+           <div class="sidebar-header-sm flex justify-between items-center">
+             <span class="font-bold">Risk Pillars</span>
+             <div class="toggle-pills">
+                 <div class="pill-btn" onclick="toggleSidebarAll('trendsPillarFilters', true)">All</div>
+                 <div class="pill-btn" onclick="toggleSidebarAll('trendsPillarFilters', false)">None</div>
+             </div>
+           </div>
+           <!-- Replaced hardcoded list with container for dynamic generation -->
+           <div class="matrix-check-group" id="trendsPillarFilters"></div>
+         </div>
+         <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
+         <div class="sidebar-group">
+           <div class="sidebar-header-sm">Organisations</div>
+           <div style="font-size:11px; color:#6b7280; margin-bottom:5px;">1 of 10 selected</div>
+           <input type="text" class="search-box" placeholder="Search...">
+           <div class="matrix-check-group" style="max-height:100px; overflow-y:auto;">
+              <label><input type="checkbox" checked> BMW</label>
+              <label><input type="checkbox"> BorgWarner</label>
+              <label><input type="checkbox"> General Motors</label>
+           </div>
+         </div>
+       </div>
+       <div class="matrix-content-wrapper">
+          <div class="trends-chart-wrapper">
+             <canvas id="trendsChart"></canvas>
+          </div>
+          <table class="data-table-clean">
+             <thead><tr><th>Pillars</th><th>Event</th><th>Event Title</th><th># Articles</th><th>Organisations</th><th>Countries</th><th>Reported</th></tr></thead>
+             <tbody>
+                <tr><td>Financial Distress</td><td>Company Cut Forecast</td><td><a href="#" class="link-blue">BMW, slight sales growth in 2025</a></td><td>1</td><td>BMW</td><td>China, Germany</td><td>11 Jan</td></tr>
+                <tr><td>Financial Distress</td><td>Forecast</td><td><a href="#" class="link-blue">BMW share: Breakout at year high</a></td><td>1</td><td>BMW</td><td>Germany</td><td>11 Jan</td></tr>
+                <tr><td>Financial Distress</td><td>Financial Report</td><td><a href="#" class="link-blue">BMW Q4 Earnings Call Transcript</a></td><td>3</td><td>BMW</td><td>Germany, USA</td><td>10 Jan</td></tr>
+                <tr><td>Governance</td><td>Board Change</td><td><a href="#" class="link-blue">New board member appointed</a></td><td>2</td><td>BMW</td><td>Germany</td><td>08 Jan</td></tr>
+             </tbody>
+          </table>
+       </div>
+    </div>
+
+    <!-- 5. WORLD MAP VIEW -->
+    <div id="view-map" class="view-section" style="flex-direction: row;">
+       <div class="sidebar-container">
+         <div class="sidebar-section">
+             <div class="sidebar-header"><span class="sidebar-title">Time Period</span></div>
+             <select class="w-full text-sm border-gray-300 border rounded p-1.5 bg-white text-gray-700 focus:outline-none focus:border-blue-500">
+                <option>Q4 2025</option>
+             </select>
+         </div>
+         <div class="sidebar-section">
+             <div class="sidebar-header"><span class="sidebar-title">Countries</span><div class="toggle-pills"><div class="pill-btn" onclick="toggleSidebarAll('mapCountryFilters', true)">All</div><div class="pill-btn" onclick="toggleSidebarAll('mapCountryFilters', false)">None</div></div></div>
+             <!-- Container for dynamic country list -->
+             <div class="checkbox-list" id="mapCountryFilters"></div>
+         </div>
+         <div class="sidebar-section">
+             <div class="sidebar-header flex justify-between items-center mb-3"><span class="sidebar-title">Risk Pillars</span><div class="toggle-pills"><div class="pill-btn" onclick="toggleSidebarAll('mapPillarFilters', true)">All</div><div class="pill-btn" onclick="toggleSidebarAll('mapPillarFilters', false)">None</div></div></div>
+             <!-- Replaced hardcoded list with container for dynamic generation -->
+             <div class="matrix-check-group" id="mapPillarFilters"></div>
+         </div>
+         <div class="sidebar-section" style="border-bottom:none;">
+             <div class="sidebar-header"><span class="sidebar-title">Organisations</span><div class="toggle-pills"><div class="pill-btn text-blue-600">All</div><div class="pill-btn">None</div></div></div>
+             <div class="checkbox-list">
+                <label class="check-item"><input type="checkbox" checked> BMW</label>
+                <label class="check-item"><input type="checkbox" checked> BorgWarner</label>
+                <label class="check-item"><input type="checkbox" checked> General Motors</label>
+                <label class="check-item"><input type="checkbox" checked> Honda</label>
+                <label class="check-item"><input type="checkbox" checked> Hyundai</label>
+             </div>
+         </div>
+       </div>
+
+       <div class="dash-content-area">
+          <div class="map-container">
+             <div class="map-header-row">
+                <div class="text-sm font-bold text-gray-700">No countries selected</div>
+                <div class="text-xs text-gray-400 font-medium">Not all events are assigned a country</div>
+             </div>
+             <div class="map-controls-center">
+                <span class="map-ctrl-btn">ZOOM IN</span><span class="text-gray-300">|</span><span class="map-ctrl-btn">RESET</span><span class="text-gray-300">|</span><span class="map-ctrl-btn">ZOOM OUT</span>
+             </div>
+             <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                <svg class="world-svg-map" viewBox="0 0 1000 520" xmlns="http://www.w3.org/2000/svg">
+                   <g transform="translate(50, 40) scale(0.9)">
+                      <path class="land-shape land-default" d="M320,50 L360,40 L380,60 L360,100 L330,90 L320,50 Z" /> 
+                      <path class="land-shape land-default" d="M280,250 L350,260 L380,320 L360,400 L320,440 L300,380 L280,320 L270,280 L280,250 Z" /> 
+                      <path class="land-shape land-default" d="M460,150 L470,140 L480,145 L475,160 L460,150 Z" /> 
+                      <path class="land-shape land-default" d="M490,140 L510,130 L530,135 L540,150 L530,170 L510,180 L490,170 L480,160 L490,140 Z" /> 
+                      <path class="land-shape land-default" d="M530,220 L550,220 L565,240 L560,260 L580,280 L570,300 L590,320 L580,350 L560,380 L540,370 L520,350 L510,320 L500,290 L480,270 L480,250 L500,230 L530,220 Z" /> 
+                      <path class="land-shape land-default" d="M570,200 L600,190 L620,200 L610,230 L590,230 L570,200 Z" /> 
+                      <path class="land-shape land-default" d="M750,280 L780,270 L800,290 L790,310 L760,300 L750,280 Z" /> 
+                      <g>
+                          <path class="land-shape land-default" d="M150,60 L280,50 L320,90 L300,130 L250,130 L200,120 L150,100 L140,70 L150,60 Z" />
+                          <path class="land-shape land-usa" d="M190,130 L280,125 L300,140 L290,170 L270,190 L240,195 L210,180 L190,160 L185,140 Z" />
+                          <path class="land-shape land-default" d="M200,200 L250,200 L260,230 L240,250 L220,240 L200,200 Z" />
+                      </g>
+                      <g>
+                          <path class="land-shape land-default" d="M560,130 L650,110 L750,100 L850,110 L880,150 L850,180 L750,170 L650,180 L560,160 L550,140 Z" />
+                          <path class="land-shape land-china" d="M680,190 L750,180 L780,220 L750,260 L700,250 L680,230 L680,190 Z" />
+                          <path class="land-shape land-default" d="M650,210 L680,210 L690,250 L670,270 L650,250 L650,210 Z" />
+                      </g>
+                   </g>
+                </svg>
+             </div>
+          </div>
+
+          <div style="flex:1;">
+             <table class="data-table-clean">
+                <thead><tr><th>Pillars</th><th>Event</th><th>Event Title</th><th># Articles</th><th>Organisations</th><th>Countries</th><th>Reported</th></tr></thead>
+                <tbody>
+                   <tr><td>International Trade</td><td>Trade policy change</td><td><a href="#" class="link-blue">Hyundai, Kia post record U.S. market share...</a></td><td>5</td><td>Hyundai, Kia</td><td>South Korea, USA</td><td>18 Jan</td></tr>
+                   <tr><td>Product Incidents</td><td>Product Recall</td><td><a href="#" class="link-blue">South Korea: Four major automobile companies...</a></td><td>2</td><td>Mercedes-Benz</td><td>South Korea</td><td>18 Jan</td></tr>
+                   <tr><td>International Trade</td><td>Trade policy change</td><td><a href="#" class="link-blue">After a week of silence, China responds...</a></td><td>9</td><td>Toyota</td><td>China, Japan</td><td>14 Jan</td></tr>
+                </tbody>
+             </table>
+          </div>
+       </div>
+    </div>
+
+    <!-- 6. HORIZON VIEW -->
+    <div id="view-horizon" class="view-section">
+        <div class="w-full h-full p-6"> <!-- Main padding wrapper -->
+            <div class="bg-white shadow-sm rounded-lg w-full h-full flex flex-col border border-gray-200 overflow-hidden">
+                
+                <!-- Content Header -->
+                <div class="p-6 border-b border-gray-100 flex justify-between items-start shrink-0">
+                    <div class="max-w-2xl">
+                        <h2 class="text-xl font-bold text-gray-800 mb-2">Rising Events by Location</h2>
+                        <p class="text-sm text-gray-400">Countries by rising risk event types, not limited to selected organisations. Select a country for a more detailed breakdown and to examine individual event types.</p>
+                    </div>
+                    
+                    <div class="flex items-center gap-6">
+                        <!-- Search Filter -->
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-bold text-gray-700 uppercase tracking-wide">Search</label>
+                            <div class="relative">
+                                <input type="text" placeholder="Search countries..." class="pl-8 pr-4 py-2 border border-gray-200 rounded text-sm text-gray-600 focus:outline-none focus:border-blue-500 w-48 transition-colors">
+                                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-3 text-gray-300 text-xs"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- Time Period Filter -->
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-bold text-gray-700 uppercase tracking-wide">Time Period</label>
+                            <button class="flex items-center justify-between gap-3 px-4 py-2 border border-gray-200 rounded text-sm text-gray-600 bg-white hover:bg-gray-50 transition-colors w-32">
+                                <span>Q4 2025</span>
+                                <i class="fa-solid fa-chevron-down text-xs text-gray-400"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="flex-1 overflow-y-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-white sticky top-0 z-10">
+                            <tr>
+                                <th class="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 w-1/4">Country</th>
+                                <th class="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 w-1/6 group cursor-pointer hover:text-gray-700">
+                                    # Rising 
+                                    <i class="fa-solid fa-arrow-down ml-1 text-gray-400 group-hover:text-gray-600"></i>
+                                </th>
+                                <th class="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">Top 3 Event Types</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-700 text-sm">
+                            <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100 h-[50px] cursor-pointer" onclick="openCountryModal('Austria')">
+                                <td class="py-3 px-6 font-medium">Austria</td>
+                                <td class="py-3 px-6">12 / 30</td>
+                                <td class="py-3 px-6 text-gray-500">Product Safety Warning, Greenwashing Allegation, Trade Sanctions</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100 h-[50px] cursor-pointer" onclick="openCountryModal('Belgium')">
+                                <td class="py-3 px-6 font-medium">Belgium</td>
+                                <td class="py-3 px-6">12 / 30</td>
+                                <td class="py-3 px-6 text-gray-500">Bribery & Corruption, Terrorism Threat, Petition</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100 h-[50px] cursor-pointer" onclick="openCountryModal('Cyprus')">
+                                <td class="py-3 px-6 font-medium">Cyprus</td>
+                                <td class="py-3 px-6">12 / 30</td>
+                                <td class="py-3 px-6 text-gray-500">Data Leak, Border Dispute, Workplace Accident</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100 h-[50px] cursor-pointer" onclick="openCountryModal('Kenya')">
+                                <td class="py-3 px-6 font-medium">Kenya</td>
+                                <td class="py-3 px-6">12 / 30</td>
+                                <td class="py-3 px-6 text-gray-500">Data Leak, Natural Disaster, Whistleblower</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100 h-[50px] cursor-pointer" onclick="openCountryModal('United Arab Emirates')">
+                                <td class="py-3 px-6 font-medium">United Arab Emirates</td>
+                                <td class="py-3 px-6">11 / 30</td>
+                                <td class="py-3 px-6 text-gray-500">Border Dispute, Regulatory Fines, Company Cut Forecast</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100 h-[50px] cursor-pointer" onclick="openCountryModal('Switzerland')">
+                                <td class="py-3 px-6 font-medium">Switzerland</td>
+                                <td class="py-3 px-6">11 / 30</td>
+                                <td class="py-3 px-6 text-gray-500">Regulatory Investigation, Insider Trading Allegation, Antitrust Investigation</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100 h-[50px] cursor-pointer" onclick="openCountryModal('Chile')">
+                                <td class="py-3 px-6 font-medium">Chile</td>
+                                <td class="py-3 px-6">11 / 30</td>
+                                <td class="py-3 px-6 text-gray-500">Trade Sanctions, Antitrust Investigation, Workforce Layoffs</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+  
+  <div class="overlay-mask" id="overlayMask" onclick="closePanel()"></div>
+  <div class="dash-panel" id="detailPanel">
+    <div class="panel-header">
+      <div class="panel-close" onclick="closePanel()">✕</div>
+      <div class="panel-title" id="panelTitle">Risk Item</div>
+      <div class="panel-meta" id="panelMeta">Company • Date</div>
+    </div>
+    <div class="panel-content">
+      <div style="background:#f0fdf4; padding:15px; border-radius:6px; border:1px solid #bbf7d0;">
+        <div style="font-weight:700; color:#166534; margin-bottom:5px;">Risk Score 3 (Stable)</div>
+        <div style="font-size:12px; color:#14532d;">Risk events have become <strong>0% less frequent</strong> compared to 6 months ago.</div>
+      </div>
+      <div>
+        <div style="font-size:11px; font-weight:700; color:#333; margin-bottom:6px;">Event Media Coverage</div>
+        <a href="#" class="link-blue" style="display:block; margin-bottom:8px; font-size:12px;">BMW M 1000 XR with new colour: Old GS paint?</a>
+        <a href="#" class="link-blue" style="display:block; margin-bottom:8px; font-size:12px;">Greenwashing Allegation: Full Report</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPDATED TOUR OVERLAY & CARD STRUCTURE -->
+  <div id="tour-overlay" class="tour-overlay" style="display:none;"></div>
+
+  <div id="tour-card" class="tour-card" style="display:none;">
+      <div class="tour-close" onclick="closeTour()">
+          <i class="fa-solid fa-xmark"></i>
+      </div>
+      <div class="tour-title" id="tour-title">Welcome to Signal AI's Risk Intelligence Platform</div>
+      <div class="tour-desc" id="tour-desc">This interactive demo will guide you through our AI-powered media insights platform.<br>Click Next to begin the tour.</div>
+      <div class="tour-footer">
+          <div class="tour-progress" id="tour-dots">
+              <!-- Dots injected via JS -->
+          </div>
+          <div class="tour-btn-group">
+              <button class="btn-tour-back" id="tour-back" onclick="prevTourStep()" style="display:none;">Back</button>
+              <button class="btn-tour-next" id="tour-next" onclick="nextTourStep()">Next <i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+          </div>
+      </div>
+  </div>
+
+  <div id="demo-popup" class="demo-popup-overlay">
+      <div class="demo-popup-card">
+          <div class="tour-close" onclick="closeDemoPopup()">✕</div>
+          <div class="tour-title">Interested in Signal AI's Risk Intelligence Platform?</div>
+          <div class="tour-desc">Schedule a live session with our risk experts to discuss your specific monitoring needs and see the platform adapted to your organization.</div>
+          <a href="https://signal-ai.com/contact-us/?utm_source=content&utm_medium=report-link&utm_campaign=corp-comms&utm_content=askaiq-id&sf_campaign_id=701N100000FFSOGIAY" target="_blank" class="btn-tour-next" style="text-decoration:none; display:inline-block; margin-top: 20px;">Schedule a Demo ></a>
+      </div>
+  </div>
+
+  <!-- --- NEW COUNTRY MODAL --- -->
+  <div id="countryModalOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden flex justify-center items-center backdrop-blur-sm" onclick="if(event.target === this) closeCountryModal()">
+    <div class="bg-white w-[95%] h-[90%] rounded-lg shadow-2xl flex flex-col overflow-hidden animate-fade-in-up">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
+            <div class="flex items-center gap-4">
+                <div class="flex gap-2">
+                    <button class="px-3 py-1 bg-white border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-100">&lt; Previous</button>
+                    <button class="px-3 py-1 bg-white border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-100">Next &gt;</button>
+                </div>
+                <h2 id="modalCountryTitle" class="text-2xl font-bold text-gray-800">Austria</h2>
+            </div>
+            <button onclick="closeCountryModal()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Left Panel -->
+            <div class="w-[30%] bg-white border-r border-gray-200 p-6 overflow-y-auto flex flex-col gap-6">
+                <div>
+                    <div class="text-lg font-bold text-gray-800 mb-1">12 of 30 event types rising</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wide font-semibold">QoQ Changes</div>
+                </div>
+                
+                <div class="flex flex-col gap-0">
+                    <!-- Stat Row -->
+                    <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                        <span class="text-sm font-medium text-gray-700">Product Safety Warning</span>
+                        <span class="text-sm font-bold text-red-500">+460% (+23)</span>
+                    </div>
+                    <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                        <span class="text-sm font-medium text-gray-700">Greenwashing Allegation</span>
+                        <span class="text-sm font-bold text-red-500">+400% (+8)</span>
+                    </div>
+                    <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                        <span class="text-sm font-medium text-gray-700">Trade Sanctions</span>
+                        <span class="text-sm font-bold text-red-500">+200% (+6)</span>
+                    </div>
+                    <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                        <span class="text-sm font-medium text-gray-700">Company Cut Forecast</span>
+                        <span class="text-sm font-bold text-red-500">+125% (+5)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="w-[70%] bg-gray-50 p-8 overflow-y-auto">
+                
+                <!-- Chart Section -->
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
+                    <h3 class="text-sm font-bold text-gray-700 uppercase mb-4">Total number of events per week in <span id="chartCountryName">Austria</span></h3>
+                    <div class="h-64 w-full">
+                        <canvas id="countryEventsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Table Section -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-800">Showing all events</h3>
+                    </div>
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-gray-50 text-gray-500 font-semibold border-b border-gray-200">
+                            <tr>
+                                <th class="py-3 px-4">Pillars</th>
+                                <th class="py-3 px-4">Event</th>
+                                <th class="py-3 px-4">Event Title</th>
+                                <th class="py-3 px-4 text-center"># Articles</th>
+                                <th class="py-3 px-4">Organisations</th>
+                                <th class="py-3 px-4">Countries</th>
+                                <th class="py-3 px-4">Reported</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-700">
+                            <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                <td class="py-3 px-4">Operational Accidents</td>
+                                <td class="py-3 px-4">Workplace Accident</td>
+                                <td class="py-3 px-4"><a href="#" class="text-blue-600 hover:underline font-medium">Tragedy in Bavaria...</a></td>
+                                <td class="py-3 px-4 text-center">3</td>
+                                <td class="py-3 px-4 text-gray-400">-</td>
+                                <td class="py-3 px-4">Austria, Germany</td>
+                                <td class="py-3 px-4 text-gray-500">31 Dec</td>
+                            </tr>
+                            <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                <td class="py-3 px-4">Tax</td>
+                                <td class="py-3 px-4">Tax Reform Change</td>
+                                <td class="py-3 px-4"><a href="#" class="text-blue-600 hover:underline font-medium">Austria's 2026 Tax Revolution...</a></td>
+                                <td class="py-3 px-4 text-center">1</td>
+                                <td class="py-3 px-4 text-gray-400">-</td>
+                                <td class="py-3 px-4">Austria</td>
+                                <td class="py-3 px-4 text-gray-500">31 Dec</td>
+                            </tr>
+                            <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                <td class="py-3 px-4">Legal</td>
+                                <td class="py-3 px-4">Company Sued</td>
+                                <td class="py-3 px-4"><a href="#" class="text-blue-600 hover:underline font-medium">ORF: Settlement ends labour...</a></td>
+                                <td class="py-3 px-4 text-center">2</td>
+                                <td class="py-3 px-4">ORF</td>
+                                <td class="py-3 px-4">Austria</td>
+                                <td class="py-3 px-4 text-gray-500">31 Dec</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // --- TOUR LOGIC ---
+  const tourSteps = [
+    { title: "Welcome to Signal AI's Risk Intelligence Platform", desc: "This interactive demo will guide you through our AI-powered media insights platform. Click Next to begin.", view: "overview" },
+    { title: "Risk Overview", desc: "Get a high-level summary of risk scores, key drivers, and monthly trends across your monitored entities.", view: "overview" },
+    { title: "Risk Matrix", desc: "Visualize risks based on frequency and media impact. Identify high-priority issues at a glance.", view: "matrix" },
+    { title: "Heatmap Analysis", desc: "Drill down into detailed risk scores across pillars and organizations to spot specific vulnerabilities.", view: "heatmap" },
+    { title: "Trend Analysis", desc: "Track how specific risk pillars evolve over time with interactive charts.", view: "trends" },
+    { title: "Geographic Insights", desc: "See where issues are emerging globally with our World Map visualization.", view: "map" },
+    { title: "Horizon Explorer", desc: "Spot the 'unknown unknowns. Identify rapidly rising event types in specific regions to detect emerging threats before they impact your monitored organizations.", view: "horizon" }
+  ];
+
+  let currentStep = 0;
+
+  function initTour() {
+    const overlay = document.getElementById('tour-overlay');
+    const card = document.getElementById('tour-card');
+    
+    // Safety check to prevent null reference errors
+    if (!overlay || !card) {
+        console.error("Tour elements not found in DOM");
+        return;
+    }
+
+    currentStep = 0;
+    overlay.style.display = 'block';
+    card.style.display = 'block';
+    generateDots();
+    renderStep();
+  }
+
+  function generateDots() {
+    const dotsContainer = document.getElementById('tour-dots');
+    dotsContainer.innerHTML = '';
+    tourSteps.forEach((_, index) => {
+        const dot = document.createElement('div');
+        dot.className = index === 0 ? 't-dot active' : 't-dot';
+        dotsContainer.appendChild(dot);
+    });
+  }
+
+  function renderStep() {
+    const step = tourSteps[currentStep];
+    const card = document.getElementById('tour-card');
+     
+    // Content
+    document.getElementById('tour-title').innerText = step.title;
+    document.getElementById('tour-desc').innerText = step.desc;
+     
+    // Switch view if needed
+    const tabs = document.querySelectorAll('.dash-tab');
+    let targetTab = null;
+    tabs.forEach(tab => {
+        // Remove previous highlight
+        tab.classList.remove('tour-focus');
+        if (tab.getAttribute('data-view') === step.view) {
+            targetTab = tab;
+        }
+    });
+
+    if (step.view && targetTab) {
+        switchView(step.view, targetTab);
+        // Add highlight to the tab for context
+        if(currentStep > 0) targetTab.classList.add('tour-focus');
+    }
+
+    // Update Dots
+    const dots = document.getElementById('tour-dots').children;
+    for(let i=0; i<dots.length; i++) {
+        dots[i].className = i === currentStep ? 't-dot active' : 't-dot';
+    }
+
+    // Update Buttons
+    document.getElementById('tour-back').style.display = currentStep > 0 ? 'block' : 'none';
+    const nextBtn = document.getElementById('tour-next');
+    if (currentStep === tourSteps.length - 1) {
+        nextBtn.innerHTML = 'Finish <i class="fa-solid fa-check text-[10px]"></i>';
+    } else {
+        nextBtn.innerHTML = 'Next <i class="fa-solid fa-chevron-right text-[10px]"></i>';
+    }
+  }
+
+  function nextTourStep() {
+    if (currentStep < tourSteps.length - 1) {
+        currentStep++;
+        renderStep();
+    } else {
+        // FINISHED TOUR
+        // Return to overview tab
+        const overviewTab = document.querySelector('.dash-tab[data-view="overview"]');
+        if(overviewTab) switchView('overview', overviewTab);
+        
+        closeTour();
+        // Open Demo Popup at the end
+        document.getElementById('demo-popup').style.display = 'block';
+    }
+  }
+
+  function prevTourStep() {
+    if (currentStep > 0) {
+        currentStep--;
+        renderStep();
+    }
+  }
+
+  function closeTour() {
+    const overlay = document.getElementById('tour-overlay');
+    const card = document.getElementById('tour-card');
+    
+    if (overlay) overlay.style.display = 'none';
+    if (card) card.style.display = 'none';
+    
+    // Remove all focus classes
+    document.querySelectorAll('.tour-focus').forEach(el => el.classList.remove('tour-focus'));
+  }
+
+  function closeDemoPopup() {
+    document.getElementById('demo-popup').style.display = 'none';
+  }
+
+
+  // --- HEATMAP DATA & LOGIC ---
+  const heatmapData = [
+    { category: "Activism", children: ["Boycott", "Petition"] },
+    { category: "Environmental", children: ["Air Pollution Fined", "Contamination Spills", "Greenwashing Allegation"] },
+    { category: "Financial Distress", children: ["Company Cut Forecast", "Facility Closure", "Workforce Layoffs"] },
+    { category: "Geopolitical", children: ["Border Dispute", "Terrorism Threat", "Trade Sanctions"] },
+    { category: "Governance", children: ["Bribery & Corruption", "Insider Trading Allegation"] },
+    { category: "International Trade", children: ["Trade policy change", "Trade Sanctions"] },
+    { category: "Legal", children: ["Bribery & Corruption", "Company Sued"] },
+    { category: "Natural Disaster", children: ["Natural Disaster"] },
+    { category: "Operational Accidents", children: ["Unplanned Shutdown", "Workplace Accident"] },
+    { category: "People & HR", children: ["Labor Strike", "Whistleblower", "Workforce Layoffs"] },
+    { category: "Product Incidents", children: ["Product Recall", "Product Safety Warning"] },
+    { category: "Regulatory", children: ["Antitrust Investigation", "Regulatory Fines", "Regulatory Investigation"] },
+    { category: "Supply Chain", children: ["Facility Closure", "IT System Outage", "Labor Strike", "Unplanned Shutdown"] },
+    { category: "Tax", children: ["Tax Evasion", "Tax Reform Change"] },
+    { category: "Tech & Cyber", children: ["Cyber Attack", "Data Leak"] }
+  ];
+
+  // Helper to generate a random score for demo purposes (1-25)
+  function getRandomScore(metric = 'score') {
+    if (metric === 'count') return Math.floor(Math.random() * 100);
+    if (metric === 'frequency') return Math.floor(Math.random() * 10);
+    if (metric === 'media') return Math.floor(Math.random() * 500) + 100;
+    // default risk score
+    return Math.floor(Math.random() * 25) + 1;
+  }
+  
+  function getRandomPercent() {
+      const val = Math.floor(Math.random() * 40) - 20; // -20 to +20
+      return val > 0 ? `+${val}%` : `${val}%`;
+  }
+
+  // Helper to get color style based on value
+  function getHeatmapColor(val, metric) {
+    // Logic for Risk Score (1-25)
+    if (!metric || metric === 'score') {
+        if (val === 1) return 'bg-[#568a54] text-white'; // Dark Green
+        if (val <= 5) return 'bg-[#8ab588] text-white'; // Light Green
+        if (val <= 12) return 'bg-[#f0e68c] text-gray-800'; // Yellow
+        if (val <= 19) return 'bg-[#e6a655] text-white'; // Orange
+        return 'bg-[#d65f5f] text-white'; // Red (20+)
+    }
+    // Generic logic for other metrics (Counts, etc) - simple opacity scale
+    return 'bg-blue-100 text-gray-800';
+  }
+
+  // Called when sidebar filters change
+  function updateHeatmapState() {
+      renderHeatmap();
+  }
+
+  // Render Heatmap Table
+  function renderHeatmap() {
+    const container = document.getElementById('heatmapContainer');
+    if (!container) return;
+
+    // Get Active Options
+    const metric = document.querySelector('input[name="heatmapMetric"]:checked')?.value || 'score';
+    const viewType = document.querySelector('input[name="heatmapViewType"]:checked')?.value || 'value';
+    
+    // Get Selected Organizations
+    const orgCheckboxes = document.querySelectorAll('#heatmapOrgFilters input:checked');
+    const selectedOrgs = Array.from(orgCheckboxes).map(cb => cb.value);
+
+    // Build Table Header
+    let html = `
+      <table class="w-full text-left border-collapse min-w-[800px]">
+        <thead class="bg-white sticky top-0 z-10 shadow-sm">
+          <tr>
+            <th class="py-4 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 bg-white sticky left-0 z-20 w-64">Pillar</th>
+    `;
+    
+    // Add dynamic organization headers
+    selectedOrgs.forEach(org => {
+        html += `<th class="py-4 px-2 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 text-center">${org}</th>`;
+    });
+    
+    html += `
+          </tr>
+        </thead>
+        <tbody class="text-sm">
+    `;
+
+    heatmapData.forEach((item, index) => {
+      // 1. Render Parent Row
+      html += `
+        <tr class="bg-gray-50 border-b border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors group" onclick="toggleHeatmapRow(${index})">
+          <td class="py-3 px-4 font-bold text-gray-800 sticky left-0 bg-gray-50 group-hover:bg-gray-100 border-r border-gray-100 flex items-center gap-2">
+            <i class="fa-solid fa-chevron-down text-xs text-gray-400 transition-transform duration-200" id="chevron-${index}" style="transform: rotate(-90deg);"></i>
+            ${item.category}
+          </td>
+      `;
+      // Render Cells for selected organizations
+      selectedOrgs.forEach(() => {
+          html += generateCellHtml(metric, viewType);
+      });
+      html += `</tr>`;
+
+      // 2. Render Children Rows (Hidden by default)
+      item.children.forEach(child => {
+        html += `
+          <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors child-row-${index}" style="display:none;">
+            <td class="py-2 px-4 pl-10 text-gray-600 sticky left-0 bg-white border-r border-gray-100 text-xs font-medium truncate">${child}</td>
+        `;
+        selectedOrgs.forEach(() => {
+            html += generateCellHtml(metric, viewType);
+        });
+        html += `</tr>`;
+      });
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+  }
+
+  function generateCellHtml(metric, viewType) {
+    let content = "";
+    let colorClass = "";
+    
+    if (viewType === 'value') {
+        const val = getRandomScore(metric);
+        content = val;
+        colorClass = getHeatmapColor(val, metric);
+    } else {
+        // Percentage views
+        content = getRandomPercent();
+        // Simple coloring for % change: negative green, positive red (assuming risk context)
+        // For simplicity reusing basic text styling here
+        const isPos = content.includes('+');
+        colorClass = isPos ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700';
+    }
+    
+    return `<td class="py-2 px-2 text-center"><div class="${colorClass} rounded-md py-1 px-3 text-xs font-bold inline-block min-w-[30px] shadow-sm whitespace-nowrap">${content}</div></td>`;
+  }
+
+  function toggleHeatmapRow(index) {
+    const rows = document.querySelectorAll(`.child-row-${index}`);
+    const chevron = document.getElementById(`chevron-${index}`);
+    let isHidden = false;
+     
+    rows.forEach(row => {
+      if (row.style.display === 'none') {
+        row.style.display = 'table-row';
+        isHidden = false;
+      } else {
+        row.style.display = 'none';
+        isHidden = true;
+      }
+    });
+
+    // Rotate chevron
+    if (chevron) {
+      chevron.style.transform = isHidden ? 'rotate(-90deg)' : 'rotate(0deg)';
+    }
+  }
+
+  // --- NEW SIDEBAR PILLAR LOGIC ---
+  function renderSidebarPillars(containerId, viewPrefix) {
+    const container = document.getElementById(containerId);
+    if(!container) return;
+    container.innerHTML = '';
+
+    heatmapData.forEach((item, index) => {
+      // Parent Div
+      const parentDiv = document.createElement('div');
+      parentDiv.className = 'flex flex-col gap-1 mb-2';
+
+      // Parent Row (Checkbox + Label + Chevron)
+      const header = document.createElement('div');
+      header.className = 'flex items-center justify-between cursor-pointer';
+      
+      // Left side: Checkbox + Label
+      const left = document.createElement('label');
+      left.className = 'flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer select-none';
+      
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      cb.className = 'accent-blue-600 w-4 h-4 rounded parent-cb';
+      cb.dataset.group = `${viewPrefix}-group-${index}`;
+      // On parent checkbox change, toggle all children checkboxes
+      cb.onchange = function() { 
+          const groupClass = this.dataset.group;
+          const children = document.querySelectorAll(`.${groupClass}`);
+          children.forEach(child => child.checked = this.checked);
+      };
+
+      const span = document.createElement('span');
+      span.innerText = item.category;
+
+      left.appendChild(cb);
+      left.appendChild(span);
+
+      // Right side: Chevron
+      const chevron = document.createElement('i');
+      chevron.className = 'fa-solid fa-chevron-right text-[10px] text-gray-400 transition-transform duration-200';
+      chevron.id = `${viewPrefix}-chevron-${index}`;
+      // Chevron click specifically toggles collapse
+      chevron.onclick = (e) => {
+          e.preventDefault();
+          const childrenDiv = document.getElementById(`${viewPrefix}-children-${index}`);
+          if (childrenDiv) {
+              if (childrenDiv.classList.contains('hidden')) {
+                  childrenDiv.classList.remove('hidden');
+                  e.target.style.transform = 'rotate(90deg)';
+              } else {
+                  childrenDiv.classList.add('hidden');
+                  e.target.style.transform = 'rotate(0deg)';
+              }
+          }
+      };
+
+      header.appendChild(left);
+      header.appendChild(chevron);
+      parentDiv.appendChild(header);
+
+      // Children Container
+      const childrenDiv = document.createElement('div');
+      childrenDiv.id = `${viewPrefix}-children-${index}`;
+      childrenDiv.className = 'flex flex-col gap-2 ml-6 mt-1 hidden'; // Hidden by default
+
+      item.children.forEach(child => {
+          const childLabel = document.createElement('label');
+          childLabel.className = 'flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none';
+          
+          const childCb = document.createElement('input');
+          childCb.type = 'checkbox';
+          childCb.checked = true;
+          childCb.className = `accent-blue-600 w-3 h-3 rounded child-cb ${viewPrefix}-group-${index}`;
+          
+          const childSpan = document.createElement('span');
+          childSpan.innerText = child;
+
+          childLabel.appendChild(childCb);
+          childLabel.appendChild(childSpan);
+          childrenDiv.appendChild(childLabel);
+      });
+
+      parentDiv.appendChild(childrenDiv);
+      container.appendChild(parentDiv);
+    });
+  }
+
+  // --- NEW: RENDER COUNTRIES ---
+  const allCountries = [
+    "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua & Deps", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina", "Burundi", "Cambodia", "Cameroon", "Canada", "Cape Verde", "Central African Rep", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Congo {Democratic Rep}", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "East Timor", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Korea North", "Korea South", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Macedonia", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "Norway", "Oman", "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russian Federation", "Rwanda", "St Kitts & Nevis", "St Lucia", "Saint Vincent & the Grenadines", "Samoa", "San Marino", "Sao Tome & Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Swaziland", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", "Tonga", "Trinidad & Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
+  ];
+
+  function renderCountries(containerId) {
+      const container = document.getElementById(containerId);
+      if(!container) return;
+      container.innerHTML = '';
+      
+      allCountries.forEach(country => {
+          const label = document.createElement('label');
+          label.className = 'check-item';
+          
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(' ' + country));
+          container.appendChild(label);
+      });
+  }
+
+  function toggleSidebarAll(containerId, shouldCheck) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const inputs = container.querySelectorAll('input[type="checkbox"]');
+      inputs.forEach(input => {
+          input.checked = shouldCheck;
+          // Trigger change event manually if needed for children logic
+          input.dispatchEvent(new Event('change')); 
+      });
+  }
+
+  // --- GLOBAL SWITCH LOGIC ---
+  function switchView(viewId, tabElement) {
+    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+    document.getElementById('view-' + viewId).classList.add('active');
+     
+    document.querySelectorAll('.dash-tab').forEach(el => el.classList.remove('active'));
+    tabElement.classList.add('active');
+
+    // Init chart if switching to trends and not already init
+    if(viewId === 'trends' && !window.trendsChartInstance) {
+       initTrendsChart();
+    }
+  }
+
+  function setGlobalMode(mode) {
+    const cards = document.querySelectorAll('.card[data-mode]'); 
+    cards.forEach(card => {
+      card.setAttribute('data-mode', mode);
+      const btns = card.querySelectorAll('.t-opt');
+      btns.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.innerText.toLowerCase() === mode) {
+          btn.classList.add('active');
+        }
+      });
+    });
+  }
+
+  // --- CHART.JS LOGIC ---
+  function initTrendsChart() {
+     const ctx = document.getElementById('trendsChart').getContext('2d');
+     window.trendsChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+           labels: ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'],
+           datasets: [
+              {
+                 label: 'Financial Distress',
+                 data: [2, 4, 6, 8, 14, 12],
+                 borderColor: '#4ade80', backgroundColor: '#4ade80',
+                 borderWidth: 2, tension: 0.1, pointRadius: 3
+              },
+              {
+                 label: 'Governance',
+                 data: [1, 1, 1, 1, 1, 1],
+                 borderColor: '#a855f7', backgroundColor: '#a855f7',
+                 borderWidth: 2, tension: 0.1, pointRadius: 3
+              }
+           ]
+        },
+        options: {
+           responsive: true, maintainAspectRatio: false,
+           plugins: {
+              legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 12 } } }
+           },
+           scales: {
+              y: { beginAtZero: true, max: 25, title: { display: true, text: 'Risk score', color: '#9ca3af', font: {size:11} }, grid: { color: '#f3f4f6' } },
+              x: { grid: { display: false } }
+           }
+        }
+     });
+  }
+
+  // --- MATRIX LOGIC ---
+  const dataRiskPillars = [
+    { text: "International Trade", type: "gm", r: 1, c: 4 }, 
+    { text: "Product Incidents", type: "cohort", r: 2, c: 3 },
+    { text: "Product Incidents", type: "bmw", r: 2, c: 4 },
+    { text: "Financial Distress", type: "bmw", r: 2, c: 0 },
+    { text: "International Trade", type: "bmw", r: 3, c: 4 }
+  ];
+  const dataEventTypes = [ { text: "Greenwashing Allegation", type: "bmw", r: 1, c: 0 } ];
+  const dataCompanies = [ { text: "Cohort", type: "cohort", r: 3, c: 0 } ];
+
+  const gridContainer = document.getElementById('matrixGrid');
+  if(gridContainer) {
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 5; c++) {
+        const cell = document.createElement('div');
+        cell.className = `cell c-${r}-${c}`;
+        cell.id = `cell-${r}-${c}`;
+        gridContainer.appendChild(cell);
+      }
+    }
+  }
+
+  function updateMatrix() {
+    const modeEl = document.querySelector('input[name="matrixView"]:checked');
+    if(!modeEl) return;
+    const mode = modeEl.value;
+     
+    document.querySelectorAll('.cell').forEach(el => el.innerHTML = '');
+    let dataset = [];
+    if (mode === 'risk') dataset = dataRiskPillars;
+    else if (mode === 'event') dataset = dataEventTypes;
+    else dataset = dataCompanies;
+
+    dataset.forEach(item => {
+      const cell = document.getElementById(`cell-${item.r}-${item.c}`);
+      if (cell) {
+        const chip = document.createElement('div');
+        chip.className = `chip bg-${item.type}`;
+        chip.innerText = item.text;
+        // Basic filtering logic for Matrix
+        if (mode === 'risk') {
+            const container = document.getElementById('matrixPillarFilters');
+            const spans = container.querySelectorAll('span');
+            let isVisible = true;
+            for(let s of spans) {
+                if(s.innerText === item.text) {
+                    const cb = s.previousElementSibling;
+                    if(cb && !cb.checked) isVisible = false;
+                    break;
+                }
+            }
+            if(!isVisible) chip.style.display = 'none';
+        }
+        chip.onclick = () => openPanel(item);
+        cell.appendChild(chip);
+      }
+    });
+  }
+
+  // --- PANEL LOGIC ---
+  function openPanel(item) {
+    document.getElementById('panelTitle').innerText = item.text || "Risk Item";
+    const names = { cohort: "Cohort", bmw: "BMW", borg: "BorgWarner", gm: "General Motors", honda: "Honda" };
+    const niceName = names[item.type] || "General Motors"; 
+    document.getElementById('panelMeta').innerText = `${niceName} • Q4 2025`;
+    document.getElementById('detailPanel').classList.add('open');
+    document.getElementById('overlayMask').classList.add('active');
+  }
+
+  window.closePanel = function() {
+    document.getElementById('detailPanel').classList.remove('open');
+    document.getElementById('overlayMask').classList.remove('active');
+  }
+
+  // --- NEW: COUNTRY MODAL LOGIC ---
+  window.openCountryModal = function(countryName) {
+      document.getElementById('countryModalOverlay').classList.remove('hidden');
+      document.getElementById('modalCountryTitle').innerText = countryName;
+      document.getElementById('chartCountryName').innerText = countryName;
+      
+      // Initialize Chart if not already
+      initCountryChart();
+  }
+
+  window.closeCountryModal = function() {
+      document.getElementById('countryModalOverlay').classList.add('hidden');
+  }
+
+  let countryChartInstance = null;
+
+  function initCountryChart() {
+      const ctx = document.getElementById('countryEventsChart');
+      if (!ctx) return;
+      
+      // Destroy existing to allow updates/resize cleanly
+      if(countryChartInstance) {
+          countryChartInstance.destroy();
+      }
+
+      countryChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+              labels: ['Jun 30', 'Aug 4', 'Sep 8', 'Oct 13', 'Nov 17', 'Dec 22'],
+              datasets: [{
+                  label: 'Number of events',
+                  data: [15, 25, 18, 30, 22, 35], // Hardcoded sample data
+                  backgroundColor: '#f87171',
+                  borderRadius: 4,
+                  barThickness: 24
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                  legend: { display: false }
+              },
+              scales: {
+                  y: { 
+                      beginAtZero: true,
+                      grid: { color: '#f3f4f6' },
+                      border: { display: false }
+                  },
+                  x: {
+                      grid: { display: false },
+                      border: { display: false }
+                  }
+              }
+          }
+      });
+  }
+
+  // Initial Load
+  window.onload = function() {
+      // 1. Render Dynamic Sidebar Lists
+      renderSidebarPillars('matrixPillarFilters', 'matrix');
+      renderSidebarPillars('trendsPillarFilters', 'trends');
+      renderSidebarPillars('mapPillarFilters', 'map');
+      renderCountries('mapCountryFilters');
+
+      // 2. Initialize Views
+      updateMatrix();
+      renderHeatmap(); // Initialize heatmap
+      
+      // 3. Start Tour
+      setTimeout(initTour, 500);
+  };
+</script>
+</body>
+</html>
