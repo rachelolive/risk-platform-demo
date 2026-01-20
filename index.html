@@ -540,7 +540,7 @@
                   <span class="hm-3" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">3</span><span style="font-size:13px; font-weight:700;">Cohort average</span>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
-                  <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">BorgWarner</span>
+                  <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">Svensk Heavy Industries</span>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
                   <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">Ironclad Automotive</span>
@@ -575,7 +575,7 @@
                   <span class="hm-3" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">8</span><span style="font-size:13px; font-weight:700;">Cohort maximum</span>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
-                  <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">BorgWarner</span>
+                  <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">Svensk Heavy Industries</span>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
                   <span class="hm-1" style="padding:2px 8px; border-radius:4px; font-weight:bold; font-size:11px;">1</span><span style="font-size:13px;">Ironclad Automotive</span>
@@ -677,7 +677,7 @@
              <div class="legend-item"><div class="color-box bg-Vanguard Motors"></div> Vanguard Motors</div>
              <div class="legend-item"><div class="color-box bg-gm"></div> GM</div>
              <div class="legend-item"><div class="color-box bg-Apex Drive Corp"></div> Apex Drive Corp</div>
-             <div class="legend-item"><div class="color-box bg-borg"></div> BorgWarner</div>
+             <div class="legend-item"><div class="color-box bg-borg"></div> Svensk Heavy Industries</div>
           </div>
         </div>
       </div>
@@ -727,7 +727,7 @@
           <div class="matrix-check-group" id="heatmapOrgFilters">
              <label><input type="checkbox" value="Cohort Benchmark" checked onchange="updateHeatmapState()"> Cohort Benchmark</label>
              <label><input type="checkbox" value="Vanguard Motors" checked onchange="updateHeatmapState()"> Vanguard Motors</label>
-             <label><input type="checkbox" value="BorgWarner" checked onchange="updateHeatmapState()"> BorgWarner</label>
+             <label><input type="checkbox" value="Svensk Heavy Industries" checked onchange="updateHeatmapState()"> Svensk Heavy Industries</label>
              <label><input type="checkbox" value="Titanium Automotive Group" checked onchange="updateHeatmapState()"> Titanium Automotive Group</label>
              <label><input type="checkbox" value="Apex Drive Corp" checked onchange="updateHeatmapState()"> Apex Drive Corp</label>
              <label><input type="checkbox" value="Orion Mobility Systems" checked onchange="updateHeatmapState()"> Orion Mobility Systems</label>
@@ -795,7 +795,7 @@
            <input type="text" class="search-box" placeholder="Search...">
            <div class="matrix-check-group" style="max-height:100px; overflow-y:auto;">
               <label><input type="checkbox" checked> Vanguard Motors</label>
-              <label><input type="checkbox"> BorgWarner</label>
+              <label><input type="checkbox"> Svensk Heavy Industries</label>
               <label><input type="checkbox"> Titanium Automotive Group</label>
            </div>
          </div>
@@ -839,7 +839,7 @@
              <div class="sidebar-header"><span class="sidebar-title">Organisations</span><div class="toggle-pills"><div class="pill-btn text-blue-600">All</div><div class="pill-btn">None</div></div></div>
              <div class="checkbox-list">
                 <label class="check-item"><input type="checkbox" checked> Vanguard Motors</label>
-                <label class="check-item"><input type="checkbox" checked> BorgWarner</label>
+                <label class="check-item"><input type="checkbox" checked> Svensk Heavy Industries</label>
                 <label class="check-item"><input type="checkbox" checked> Titanium Automotive Group</label>
                 <label class="check-item"><input type="checkbox" checked> Apex Drive Corp</label>
                 <label class="check-item"><input type="checkbox" checked> Orion Mobility Systems</label>
@@ -1670,7 +1670,7 @@
   // --- PANEL LOGIC ---
   function openPanel(item) {
     document.getElementById('panelTitle').innerText = item.text || "Risk Item";
-    const names = { cohort: "Cohort", Vanguard Motors: "Vanguard Motors", borg: "BorgWarner", gm: "Titanium Automotive Group", Apex Drive Corp: "Apex Drive Corp" };
+    const names = { cohort: "Cohort", Vanguard Motors: "Vanguard Motors", borg: "Svensk Heavy Industries", gm: "Titanium Automotive Group", Apex Drive Corp: "Apex Drive Corp" };
     const niceName = names[item.type] || "Titanium Automotive Group"; 
     document.getElementById('panelMeta').innerText = `${niceName} • Q4 2025`;
     document.getElementById('detailPanel').classList.add('open');
