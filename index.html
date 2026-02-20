@@ -453,8 +453,28 @@
   
   <div class="dash-nav-header">
     <div class="header-top-row">
-      <div class="dash-title">
-        Automotive Sector 
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <div class="dash-title">
+          Automotive Sector 
+        </div>
+        
+        <!-- EXPLORE MORE DROPDOWN MENU -->
+        <div class="relative inline-block text-left" id="exploreDropdownContainer">
+          <button onclick="toggleExploreMenu()" class="text-xs font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors shadow-sm flex items-center gap-2">
+            Explore more options <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
+          </button>
+          <div id="exploreMenu" class="hidden absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-100 z-[5000] overflow-hidden">
+            <div class="flex flex-col">
+              <a href="https://www.signal-ai.com" target="_blank" class="px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100 flex items-center gap-3 transition-colors font-medium">
+                <i class="fa-solid fa-globe text-gray-400 w-4"></i> Risk solutions
+              </a>
+              <a href="https://ask-aiq-demo.vercel.app/" target="_blank" class="px-4 py-3 text-sm text-white hover:opacity-90 flex items-center gap-3 transition-opacity font-medium" style="background: linear-gradient(90deg, #8B5CF6, #DB2777);">
+                <i class="fa-solid fa-sparkles w-4"></i> Try AskAIQ agent
+              </a>
+            </div>
+          </div>
+        </div>
+        <!-- END DROPDOWN MENU -->
       </div>
     </div>
     
@@ -738,22 +758,23 @@
 
     <div id="view-trends" class="view-section">
        <div class="matrix-sidebar">
+         
          <div class="sidebar-group">
-  <div class="sidebar-header-sm">Metric</div>
-  <div class="matrix-radio-group">
-    <label><input type="radio" name="trendsMetric" value="score" checked onchange="updateTrendsChart()"> Risk score</label>
-    <label><input type="radio" name="trendsMetric" value="count" onchange="updateTrendsChart()"> Events count</label>
-  </div>
-</div>
-<div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
-<div class="sidebar-group">
-  <div class="sidebar-header-sm">Compare</div>
-  <div class="matrix-radio-group">
-    <label><input type="radio" name="trendsCompare" value="pillars" checked onchange="updateTrendsChart()"> Risk pillars</label>
-    <label><input type="radio" name="trendsCompare" value="events" onchange="updateTrendsChart()"> Event types</label>
-    <label><input type="radio" name="trendsCompare" value="orgs" onchange="updateTrendsChart()"> Organisations</label>
-  </div>
-</div>
+           <div class="sidebar-header-sm">Metric</div>
+           <div class="matrix-radio-group">
+             <label><input type="radio" name="trendsMetric" value="score" checked onchange="updateTrendsChart()"> Risk score</label>
+             <label><input type="radio" name="trendsMetric" value="count" onchange="updateTrendsChart()"> Events count</label>
+           </div>
+         </div>
+         <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
+         <div class="sidebar-group">
+           <div class="sidebar-header-sm">Compare</div>
+           <div class="matrix-radio-group">
+             <label><input type="radio" name="trendsCompare" value="pillars" checked onchange="updateTrendsChart()"> Risk pillars</label>
+             <label><input type="radio" name="trendsCompare" value="events" onchange="updateTrendsChart()"> Event types</label>
+             <label><input type="radio" name="trendsCompare" value="orgs" onchange="updateTrendsChart()"> Organisations</label>
+           </div>
+         </div>
 
          <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
          <div class="sidebar-group">
@@ -777,21 +798,6 @@
               <label><input type="checkbox"> Titanium Automotive Group</label>
            </div>
          </div>
-         <div style="border-top:1px solid #f3f4f6; margin: 15px 0;"></div>
-<div class="sidebar-group mt-2">
-  <div class="sidebar-header-sm mb-2 text-gray-400">Explore More</div>
-  <div class="flex flex-col gap-2">
-    <!-- Secondary Button Style -->
-    <a href="[https://www.signal-ai.com](https://www.signal-ai.com)" target="_blank" class="w-full text-center bg-white border border-gray-300 text-gray-600 font-medium py-1.5 px-3 rounded text-[11px] hover:bg-gray-50 transition-colors shadow-sm">
-      Learn more about our risk solutions
-    </a>
-    <!-- Primary Gradient Button Style -->
-    <a href="[https://ask-aiq-demo.vercel.app/](https://ask-aiq-demo.vercel.app/)" target="_blank" class="w-full text-center text-white font-medium py-1.5 px-3 rounded text-[11px] transition-opacity hover:opacity-90 shadow-sm" style="background: linear-gradient(90deg, #8B5CF6, #DB2777);">
-      Try AskAIQ our risk & reputation agent
-    </a>
-  </div>
-</div>
-
        </div>
        <div class="matrix-content-wrapper">
           <div class="trends-chart-wrapper">
@@ -1533,7 +1539,7 @@
     tabElement.classList.add('active');
 
     // Init chart if switching to trends and not already init
-    if(viewId === 'trends' && !window.trendsChartInstance) {
+    if(viewId === 'trends') {
        initTrendsChart();
     }
   }
@@ -1553,9 +1559,8 @@
   }
 
   // --- CHART.JS LOGIC ---
-  // --- CHART.JS LOGIC ---
   
- // Dummy data covering all permutations of Metric and Compare selections
+  // Dummy data covering all permutations of Metric and Compare selections
   const trendsData = {
       score: { // Data for "Risk score" metric
           pillars: [ // Compare: "Risk pillars"
@@ -1589,6 +1594,11 @@
 
   function initTrendsChart() {
      const ctx = document.getElementById('trendsChart').getContext('2d');
+     
+     if (window.trendsChartInstance) {
+         window.trendsChartInstance.destroy();
+     }
+
      window.trendsChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
@@ -1781,6 +1791,20 @@
           }
       });
   }
+
+  // --- EXPLORE MORE MENU LOGIC ---
+  window.toggleExploreMenu = function() {
+      document.getElementById('exploreMenu').classList.toggle('hidden');
+  }
+
+  // Close the dropdown if the user clicks outside of it
+  document.addEventListener('click', function(event) {
+      const container = document.getElementById('exploreDropdownContainer');
+      const menu = document.getElementById('exploreMenu');
+      if (container && menu && !container.contains(event.target)) {
+          menu.classList.add('hidden');
+      }
+  });
 
   // Initial Load
   window.onload = function() {
