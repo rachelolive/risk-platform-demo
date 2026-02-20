@@ -747,13 +747,21 @@
          </div>
          <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
          <div class="sidebar-group">
-           <div class="sidebar-header-sm">Compare</div>
-           <div class="matrix-radio-group">
-             <label><input type="radio" name="trendsCompare" checked> Risk pillars</label>
-             <label><input type="radio" name="trendsCompare"> Event types</label>
-             <label><input type="radio" name="trendsCompare"> Organisations</label>
-           </div>
-         </div>
+  <div class="sidebar-header-sm">Metric</div>
+  <div class="matrix-radio-group">
+    <label><input type="radio" name="trendsMetric" value="score" checked onchange="updateTrendsChart()"> Risk score</label>
+    <label><input type="radio" name="trendsMetric" value="count" onchange="updateTrendsChart()"> Events count</label>
+  </div>
+</div>
+<div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
+<div class="sidebar-group">
+  <div class="sidebar-header-sm">Compare</div>
+  <div class="matrix-radio-group">
+    <label><input type="radio" name="trendsCompare" value="pillars" checked onchange="updateTrendsChart()"> Risk pillars</label>
+    <label><input type="radio" name="trendsCompare" value="events" onchange="updateTrendsChart()"> Event types</label>
+    <label><input type="radio" name="trendsCompare" value="orgs" onchange="updateTrendsChart()"> Organisations</label>
+  </div>
+</div>
          <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
          <div class="sidebar-group">
            <div class="sidebar-header-sm flex justify-between items-center">
@@ -1537,26 +1545,47 @@
   }
 
   // --- CHART.JS LOGIC ---
+  // --- CHART.JS LOGIC ---
+  
+  // Mock data for different views
+  const trendsData = {
+      score: {
+          pillars: [
+              { label: 'Financial Distress', data: [2, 4, 6, 8, 14, 12], color: '#4ade80' },
+              { label: 'Governance', data: [1, 1, 1, 1, 1, 1], color: '#a855f7' }
+          ],
+          events: [
+              { label: 'Product Recall', data: [5, 5, 8, 12, 10, 9], color: '#f87171' },
+              { label: 'Company Sued', data: [2, 3, 2, 4, 3, 5], color: '#3b82f6' }
+          ],
+          orgs: [
+              { label: 'Vanguard Motors', data: [12, 15, 14, 18, 20, 22], color: '#eab308' },
+              { label: 'Svensk Heavy Ind.', data: [3, 4, 4, 5, 4, 6], color: '#06b6d4' }
+          ]
+      },
+      count: {
+          pillars: [
+              { label: 'Financial Distress', data: [15, 20, 35, 40, 60, 55], color: '#4ade80' },
+              { label: 'Governance', data: [5, 8, 7, 5, 10, 8], color: '#a855f7' }
+          ],
+          events: [
+              { label: 'Product Recall', data: [20, 25, 30, 45, 40, 35], color: '#f87171' },
+              { label: 'Company Sued', data: [10, 15, 12, 18, 15, 20], color: '#3b82f6' }
+          ],
+          orgs: [
+              { label: 'Vanguard Motors', data: [40, 50, 45, 60, 70, 80], color: '#eab308' },
+              { label: 'Svensk Heavy Ind.', data: [10, 15, 12, 20, 18, 25], color: '#06b6d4' }
+          ]
+      }
+  };
+
   function initTrendsChart() {
      const ctx = document.getElementById('trendsChart').getContext('2d');
      window.trendsChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
            labels: ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'],
-           datasets: [
-              {
-                 label: 'Financial Distress',
-                 data: [2, 4, 6, 8, 14, 12],
-                 borderColor: '#4ade80', backgroundColor: '#4ade80',
-                 borderWidth: 2, tension: 0.1, pointRadius: 3
-              },
-              {
-                 label: 'Governance',
-                 data: [1, 1, 1, 1, 1, 1],
-                 borderColor: '#a855f7', backgroundColor: '#a855f7',
-                 borderWidth: 2, tension: 0.1, pointRadius: 3
-              }
-           ]
+           datasets: [] // Initially empty, populated by updateTrendsChart()
         },
         options: {
            responsive: true, maintainAspectRatio: false,
@@ -1569,7 +1598,40 @@
            }
         }
      });
+     
+     // Load initial dataset based on default HTML radio selections
+     updateTrendsChart();
   }
+
+  function updateTrendsChart() {
+      if (!window.trendsChartInstance) return;
+
+      // Get current selected radio buttons
+      const metric = document.querySelector('input[name="trendsMetric"]:checked').value;
+      const compare = document.querySelector('input[name="trendsCompare"]:checked').value;
+
+      // Fetch the corresponding dataset
+      const activeData = trendsData[metric][compare];
+
+      // Update Chart.js datasets
+      window.trendsChartInstance.data.datasets = activeData.map(item => ({
+          label: item.label,
+          data: item.data,
+          borderColor: item.color,
+          backgroundColor: item.color,
+          borderWidth: 2,
+          tension: 0.1,
+          pointRadius: 3
+      }));
+
+      // Adjust Y-Axis label and max scale based on 'Metric' selection
+      window.trendsChartInstance.options.scales.y.title.text = metric === 'score' ? 'Risk score' : 'Events count';
+      window.trendsChartInstance.options.scales.y.max = metric === 'score' ? 25 : 100;
+
+      // Render the changes
+      window.trendsChartInstance.update();
+  }
+
 
   // --- MATRIX LOGIC ---
   const dataRiskPillars = [
