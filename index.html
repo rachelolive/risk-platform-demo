@@ -457,22 +457,6 @@
         Automotive Sector 
       </div>
     </div>
-
-    <div style="border-top:1px solid #f3f4f6; margin: 15px 0;"></div>
-<div class="sidebar-group mt-2">
-  <div class="sidebar-header-sm mb-2">Explore More</div>
-  <div class="flex flex-col gap-3">
-    <!-- Secondary Button Style -->
-    <a href="[https://www.signal-ai.com](https://www.signal-ai.com)" target="_blank" class="w-full text-center bg-white border border-gray-300 text-gray-700 font-semibold py-2.5 px-4 rounded-lg text-xs hover:bg-gray-50 transition-colors shadow-sm">
-      Learn more about our risk solutions
-    </a>
-    <!-- Primary Gradient Button Style -->
-    <a href="[https://ask-aiq-demo.vercel.app/](https://ask-aiq-demo.vercel.app/)" target="_blank" class="w-full text-center text-white font-semibold py-2.5 px-4 rounded-lg text-xs transition-opacity hover:opacity-90 shadow-sm" style="background: linear-gradient(90deg, #8B5CF6, #DB2777);">
-      Try AskAIQ our risk & reputation agent
-    </a>
-  </div>
-</div>
-
     
     <div class="dash-tabs" id="mainTabs">
       <div class="dash-tab active" onclick="switchView('overview', this)" data-view="overview">Overview</div>
@@ -755,14 +739,6 @@
     <div id="view-trends" class="view-section">
        <div class="matrix-sidebar">
          <div class="sidebar-group">
-           <div class="sidebar-header-sm">Metric</div>
-           <div class="matrix-radio-group">
-             <label><input type="radio" name="trendsMetric" checked> Risk score</label>
-             <label><input type="radio" name="trendsMetric"> Events count</label>
-           </div>
-         </div>
-         <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
-         <div class="sidebar-group">
   <div class="sidebar-header-sm">Metric</div>
   <div class="matrix-radio-group">
     <label><input type="radio" name="trendsMetric" value="score" checked onchange="updateTrendsChart()"> Risk score</label>
@@ -779,15 +755,6 @@
   </div>
 </div>
 
-<div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
-<div class="sidebar-group">
-  <div class="sidebar-header-sm">Compare</div>
-  <div class="matrix-radio-group">
-    <label><input type="radio" name="trendsCompare" value="pillars" checked onchange="updateTrendsChart()"> Risk pillars</label>
-    <label><input type="radio" name="trendsCompare" value="events" onchange="updateTrendsChart()"> Event types</label>
-    <label><input type="radio" name="trendsCompare" value="orgs" onchange="updateTrendsChart()"> Organisations</label>
-  </div>
-</div>
          <div style="border-top:1px solid #f3f4f6; margin: 5px 0;"></div>
          <div class="sidebar-group">
            <div class="sidebar-header-sm flex justify-between items-center">
@@ -810,6 +777,21 @@
               <label><input type="checkbox"> Titanium Automotive Group</label>
            </div>
          </div>
+         <div style="border-top:1px solid #f3f4f6; margin: 15px 0;"></div>
+<div class="sidebar-group mt-2">
+  <div class="sidebar-header-sm mb-2 text-gray-400">Explore More</div>
+  <div class="flex flex-col gap-2">
+    <!-- Secondary Button Style -->
+    <a href="[https://www.signal-ai.com](https://www.signal-ai.com)" target="_blank" class="w-full text-center bg-white border border-gray-300 text-gray-600 font-medium py-1.5 px-3 rounded text-[11px] hover:bg-gray-50 transition-colors shadow-sm">
+      Learn more about our risk solutions
+    </a>
+    <!-- Primary Gradient Button Style -->
+    <a href="[https://ask-aiq-demo.vercel.app/](https://ask-aiq-demo.vercel.app/)" target="_blank" class="w-full text-center text-white font-medium py-1.5 px-3 rounded text-[11px] transition-opacity hover:opacity-90 shadow-sm" style="background: linear-gradient(90deg, #8B5CF6, #DB2777);">
+      Try AskAIQ our risk & reputation agent
+    </a>
+  </div>
+</div>
+
        </div>
        <div class="matrix-content-wrapper">
           <div class="trends-chart-wrapper">
@@ -1573,7 +1555,7 @@
   // --- CHART.JS LOGIC ---
   // --- CHART.JS LOGIC ---
   
-  // Dummy data covering all permutations of Metric and Compare selections
+ // Dummy data covering all permutations of Metric and Compare selections
   const trendsData = {
       score: { // Data for "Risk score" metric
           pillars: [ // Compare: "Risk pillars"
@@ -1657,8 +1639,6 @@
       // Render the changes
       window.trendsChartInstance.update();
   }
-
-
 
   // --- MATRIX LOGIC ---
   const dataRiskPillars = [
