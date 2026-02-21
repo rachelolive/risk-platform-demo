@@ -1441,6 +1441,7 @@
           const groupClass = this.dataset.group;
           const children = document.querySelectorAll(`.${groupClass}`);
           children.forEach(child => child.checked = this.checked);
+          if (viewPrefix === 'matrix') updateMatrix();
       };
 
       const span = document.createElement('span');
@@ -1485,6 +1486,9 @@
           childCb.type = 'checkbox';
           childCb.checked = true;
           childCb.className = `accent-blue-600 w-3 h-3 rounded child-cb ${viewPrefix}-group-${index}`;
+          childCb.onchange = function() {
+              if (viewPrefix === 'matrix') updateMatrix();
+          };
           
           const childSpan = document.createElement('span');
           childSpan.innerText = child;
@@ -1654,15 +1658,14 @@
   }
 
   // --- MATRIX LOGIC ---
-// --- MATRIX LOGIC ---
   const dataRiskPillars = [
     { text: "International Trade", type: "gm", r: 1, c: 4 }, 
     { text: "Product Incidents", type: "cohort", r: 2, c: 3 },
     { text: "Product Incidents", type: "Vanguard Motors", r: 2, c: 4 },
     { text: "Financial Distress", type: "Vanguard Motors", r: 2, c: 0 },
     { text: "International Trade", type: "Vanguard Motors", r: 3, c: 4 },
-    // New Pillars
-    { text: "Cyber & Tech", type: "Apex Drive Corp", r: 0, c: 2 },
+    // New Pillars (Names match exactly with sidebar)
+    { text: "Tech & Cyber", type: "Apex Drive Corp", r: 0, c: 2 },
     { text: "Supply Chain", type: "borg", r: 1, c: 1 },
     { text: "Regulatory", type: "gm", r: 3, c: 2 },
     { text: "Environmental", type: "cohort", r: 0, c: 3 }
@@ -1670,20 +1673,19 @@
 
   const dataEventTypes = [ 
     { text: "Greenwashing Allegation", type: "Vanguard Motors", r: 1, c: 0 },
-    // New Event Types
-    { text: "Data Breach", type: "gm", r: 0, c: 4 },
-    { text: "Factory Shutdown", type: "borg", r: 2, c: 1 },
-    { text: "Union Strike", type: "cohort", r: 3, c: 3 },
-    { text: "Executive Resignation", type: "Apex Drive Corp", r: 1, c: 2 },
+    // New Event Types (Names match exactly with sidebar children)
+    { text: "Data Leak", type: "gm", r: 0, c: 4 },
+    { text: "Unplanned Shutdown", type: "borg", r: 2, c: 1 },
+    { text: "Labor Strike", type: "cohort", r: 3, c: 3 },
+    { text: "Workforce Layoffs", type: "Apex Drive Corp", r: 1, c: 2 },
     { text: "Product Recall", type: "gm", r: 2, c: 4 }
   ];
 
   const dataCompanies = [ 
     { text: "Cohort", type: "cohort", r: 3, c: 0 },
-    // New Companies
     { text: "Vanguard Motors", type: "Vanguard Motors", r: 1, c: 4 },
-    { text: "Titanium Auto", type: "gm", r: 0, c: 3 },
-    { text: "Svensk Heavy Ind.", type: "borg", r: 2, c: 1 },
+    { text: "Titanium Automotive Group", type: "gm", r: 0, c: 3 },
+    { text: "Svensk Heavy Industries", type: "borg", r: 2, c: 1 },
     { text: "Apex Drive Corp", type: "Apex Drive Corp", r: 2, c: 4 }
   ];
 
