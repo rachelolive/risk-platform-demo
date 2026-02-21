@@ -465,13 +465,13 @@
   </button>
   <div id="exploreMenu" class="hidden absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-100 z-[5000] overflow-hidden">
     <div class="flex flex-col">
-      <a href="https://www.signal-ai.com" target="_blank" class="px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100 flex items-center gap-3 transition-colors font-medium">
-        <i class="fa-solid fa-globe text-gray-400 w-4"></i> Learn more about our risk solutions
+      <a href="https://signal-ai.com/solutions/webapp/risk-intelligence-platform/" target="_blank" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100 transition-colors font-medium">
+        Learn more about our risk solutions
       </a>
-      <a href="https://ask-aiq-demo.vercel.app/" target="_blank" class="px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100 flex items-center gap-3 transition-colors font-medium">
-        <i class="fa-solid fa-sparkles text-gray-400 w-4"></i> Try our AskAIQ agent
+      <a href="https://ask-aiq-demo.vercel.app/" target="_blank" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100 transition-colors font-medium">
+        Try our AskAIQ agent
       </a>
-      <a href="https://signal-ai.com/contact-us/?utm_source=content%20&utm_medium=report-link&utm_campaign=risk&utm_content=risk-int-demo&sf_campaign_id=701N100000fxl4vIAA" target="_blank" class="px-4 py-3 text-sm text-white hover:opacity-90 flex items-center transition-opacity font-medium block text-center" style="background: linear-gradient(90deg, #8B5CF6, #DB2777);">
+      <a href="https://signal-ai.com/contact-us/?utm_source=content%20&utm_medium=report-link&utm_campaign=risk&utm_content=risk-int-demo&sf_campaign_id=701N100000fxl4vIAA" target="_blank" class="block px-4 py-3 text-sm text-white hover:opacity-90 transition-opacity font-medium text-center" style="background: linear-gradient(90deg, #8B5CF6, #DB2777);">
         Speak to our experts
       </a>
     </div>
@@ -1739,20 +1739,102 @@
   }
 
   // --- PANEL LOGIC ---
+  // --- PANEL LOGIC ---
   function openPanel(item) {
     document.getElementById('panelTitle').innerText = item.text || "Risk Item";
     
-    // FIX: Keys with spaces must be wrapped in quotes
+    // 1. Translate the shortcode to the full company name
     const names = { 
         "cohort": "Cohort", 
-        "Vanguard Motors": "Vanguard Motors", 
+        "vanguard": "Vanguard Motors", 
         "borg": "Svensk Heavy Industries", 
         "gm": "Titanium Automotive Group", 
-        "Apex Drive Corp": "Apex Drive Corp" 
+        "apex": "Apex Drive Corp" 
     };
     
     const niceName = names[item.type] || "Titanium Automotive Group"; 
     document.getElementById('panelMeta').innerText = `${niceName} • Q4 2025`;
+
+    // 2. Dynamically generate content based on the chip clicked
+    let score = 3, status = "Stable", trend = "0% less frequent", isGood = true;
+    let articles = [];
+
+    const itemText = item.text.toLowerCase();
+
+    // Contextual logic based on keywords in the chip text
+    if (itemText.includes("supply chain") || itemText.includes("shutdown")) {
+        score = 4; status = "Elevated"; trend = "12% more frequent"; isGood = false;
+        articles = [
+            `${niceName} faces critical parts shortage due to port strikes`,
+            `Supplier delays threaten Q4 production targets for ${niceName}`
+        ];
+    } else if (itemText.includes("product") || itemText.includes("recall")) {
+        score = 5; status = "Critical"; trend = "25% more frequent"; isGood = false;
+        articles = [
+            `Massive recall issued for ${niceName} vehicles over braking defect`,
+            `Consumer reports highlight safety concerns in new ${niceName} models`
+        ];
+    } else if (itemText.includes("cyber") || itemText.includes("leak") || itemText.includes("tech")) {
+        score = 4; status = "Elevated"; trend = "8% more frequent"; isGood = false;
+        articles = [
+            `Hackers claim to have breached ${niceName}'s customer database`,
+            `Cybersecurity firm warns of vulnerabilities in ${niceName} connected car apps`
+        ];
+    } else if (itemText.includes("financial") || itemText.includes("layoffs")) {
+        score = 3; status = "Stable"; trend = "2% less frequent"; isGood = true;
+        articles = [
+            `${niceName} announces corporate restructuring and workforce reductions`,
+            `Q3 earnings show mixed results for ${niceName} amid market headwinds`
+        ];
+    } else if (itemText.includes("environmental") || itemText.includes("greenwashing")) {
+        score = 4; status = "Elevated"; trend = "15% more frequent"; isGood = false;
+        articles = [
+            `${niceName} accused of overstating EV emission benefits`,
+            `New regulatory probe launched into ${niceName}'s sustainability claims`
+        ];
+    } else if (itemText.includes("trade") || itemText.includes("regulatory")) {
+        score = 3; status = "Stable"; trend = "5% more frequent"; isGood = false;
+        articles = [
+            `New tariffs could impact ${niceName}'s international supply routes`,
+            `Regulators scrutinize ${niceName}'s latest joint venture agreements`
+        ];
+    } else if (itemText.includes("strike")) {
+        score = 5; status = "Critical"; trend = "40% more frequent"; isGood = false;
+        articles = [
+            `Union workers walk out at major ${niceName} assembly plant`,
+            `Negotiations stall between ${niceName} management and labor leaders`
+        ];
+    } else {
+        // Fallback for general companies or unmapped items
+        score = 2; status = "Low Risk"; trend = "5% less frequent"; isGood = true;
+        articles = [
+            `${niceName} navigating broader industry trends successfully`,
+            `Quarterly risk assessment shows stable outlook for ${niceName}`
+        ];
+    }
+
+    // 3. Set colors based on the risk level
+    const boxBg = isGood ? '#f0fdf4' : (score >= 4 ? '#fef2f2' : '#fffbeb');
+    const boxBorder = isGood ? '#bbf7d0' : (score >= 4 ? '#fecaca' : '#fde68a');
+    const titleColor = isGood ? '#166534' : (score >= 4 ? '#991b1b' : '#92400e');
+    const textColor = isGood ? '#14532d' : (score >= 4 ? '#7f1d1d' : '#78350f');
+
+    // 4. Inject the HTML into the panel
+    const panelContentHtml = `
+      <div style="background:${boxBg}; padding:15px; border-radius:6px; border:1px solid ${boxBorder};">
+        <div style="font-weight:700; color:${titleColor}; margin-bottom:5px;">Risk Score ${score} (${status})</div>
+        <div style="font-size:12px; color:${textColor};">Risk events have become <strong>${trend}</strong> compared to 6 months ago.</div>
+      </div>
+      <div>
+        <div style="font-size:11px; font-weight:700; color:#333; margin-bottom:6px; margin-top:20px;">Event Media Coverage</div>
+        <a href="#" class="link-blue" style="display:block; margin-bottom:8px; font-size:12px;">${articles[0]}</a>
+        <a href="#" class="link-blue" style="display:block; margin-bottom:8px; font-size:12px;">${articles[1]}</a>
+      </div>
+    `;
+
+    document.querySelector('.panel-content').innerHTML = panelContentHtml;
+
+    // 5. Open the panel
     document.getElementById('detailPanel').classList.add('open');
     document.getElementById('overlayMask').classList.add('active');
   }
